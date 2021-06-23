@@ -13,6 +13,20 @@ classdef Domain
         theta = 0;
     end
     
+    properties (Dependent)
+        alNorm
+    end
+    
+    methods (Static)
+        
+       function mustBeDomain(obj)
+           if (~isa(obj,'Domain'))
+               error("Value must be a Domain");
+           end
+       end    
+       
+    end    
+    
     methods
         function obj = Domain(argA, argB, argC) % -- !! TODO: i want to rework this constructor to accept more flavours of input
         if (strcmp(class(obj), 'Domain')) %%% -- !! TODO: hack to avoid subclass calling superclass constructor, should prolly change !!    
@@ -33,6 +47,7 @@ classdef Domain
                     obj.dbdr  = argA.dbdr;
                     obj.ddbdr = argA.ddbdr;
                     obj.rMax  = argA.rMax;
+                                            
                     if (isfield(argB, 'originX')), obj.originX = argB.origin; else, obj.originX = [0,0]; end  
                     if (isfield(argB, 'originY')), obj.originY = argB.origin; else, obj.originY = [0,0]; end 
                     if (isfield(argB, 'theta')), obj.theta = argB.theta; else, obj.originY = [0,0]; end 
@@ -70,6 +85,9 @@ classdef Domain
             
             
             error("Bad input arguments.")
+            
+                       
+            
         end,end   
         
         
@@ -93,10 +111,16 @@ classdef Domain
             
         
         
+        function aln = get.alNorm(obj) % !! TODO: Bad implementation, initialize this in the constructor !!
+            aln = @(th) angle(obj.bdr(th).*cos(th) + obj.dbdr(th).*sin(th) + 1i *(obj.bdr(th).*sin(th) - obj.dbdr(th).*cos(th))); 
+        end    
+        
+        
+        
         function out = plot(obj) % !! TODO: make nicer lool!!
             %plot Displays boundry
             
-            n = 100;
+            n = 200;
             th = 2*pi*(1:n+1)/n;
             r = obj.bdr(th);
             pointX = cos(th) .* r;
@@ -109,4 +133,3 @@ classdef Domain
         
     end
 end
-

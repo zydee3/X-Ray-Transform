@@ -13,29 +13,14 @@ classdef RiemannSurface
         
         %%%-- !! TODO: yo make this cleaner !!
         
-        function obj = RiemannSurface(argA, argB)
-            if (nargin == 0)        % Initialize generic surface
-                obj = RiemannSurface(EuclidMetric(), Domain());
-            elseif (nargin == 1)    % Determine args and initialize partially generic surface
-                if (isa(argA,'Metric'))
-                    obj = RiemannSurface(argA, Domain());
-                elseif (isa(argA,'Domain'))  
-                    obj = RiemannSurface(argA, EuclidMetric());
-                end
-            elseif (nargin == 2)    % Initialize specified surface
-                
-                if (isa(argA,'Metric') && isa(argB,'Domain'))
-                    obj.metric = argA;
-                    obj.domain = argB;
-                    return;
-                elseif (isa(argA,'Domain') && isa(argB,'Metric'))  
-                    obj.domain = argA;
-                    obj.metric = argB;
-                    return;
-                end
-                error('Constructor arguments must be a Metric and Domain.');
-                
-            end    
+        function obj = RiemannSurface(domain, metric)
+            arguments
+                domain (1,1) {Domain.mustBeDomain} = CircleDomain()
+                metric (1,1) {Metric.mustBeMetric} = EuclidMetric()
+            end
+            
+            obj.domain = domain;
+            obj.metric = metric;
         end
         
         

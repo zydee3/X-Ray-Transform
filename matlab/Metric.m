@@ -14,6 +14,15 @@ classdef Metric
         curv = @(x,y) zeros(size(x));   
     end
     
+   methods (Static)
+        
+       function mustBeMetric(obj)
+           if (~isa(obj,'Metric'))
+               error("Value must be a Metric");
+           end
+       end    
+       
+    end  
     
     methods
         
@@ -124,7 +133,7 @@ classdef Metric
             end
             
             Z = metricVals(obj,X0,Y0); 
-            Z = min(7,max(Z,-7)); % clamp output % !! TODO make a parameter for this !!
+            Z = clamo(-7,Z,7); % clamp output % !! TODO make a parameter for this !!
             out = pcolor(X0,Y0,Z);
             
             out.EdgeColor = 'none';
@@ -146,11 +155,11 @@ classdef Metric
             
             [lgt,dxlgt,dylgt,curvt] = metricValsCurv(obj,X0,Y0);
             
-            m = -7; M = 7;
-            lgt = min(M,max(lgt,m)); % clamp output
-            dxlgt = min(M,max(dxlgt,m)); % !! TODO make a parameter for this !!
-            dylgt = min(M,max(dylgt,m));
-            curvt = min(M,max(curvt,m));
+            m = -2; M = 2;
+            lgt = clamp(m,lgt,M); % clamp output
+            dxlgt = clamp(m,dxlgt,M); % !! TODO make a parameter for this !!
+            dylgt = clamp(m,dylgt,M);
+            curvt = clamp(m,curvt,M);
             
             figure;
             subplot(2,2,1)
