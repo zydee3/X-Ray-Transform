@@ -3,7 +3,7 @@ from x_ray_transformation.meta.derivative import ddx, dddx, ddy, dddy
 import math
 
 
-class Metric(ABC):
+class BaseMetric(ABC):
 
     def __init__(self):
         self.log_g_of_t = []
@@ -24,7 +24,7 @@ class Metric(ABC):
                f'\tcur: {self.curvature}\n'
 
     @abstractmethod
-    def compute_values(self, x_values, y_values):
+    def compute_values(self, x_values: list, y_values: list):
         if len(x_values) != len(y_values):
             raise Exception(f'Number of x_values ({len(x_values)}) and y_values ({len(y_values)}) must be the same.')
         if hasattr(self, "widths") and len(x_values) != len(self.widths):
@@ -39,7 +39,7 @@ class Metric(ABC):
                 self.index = index
                 self.x_bar = self.compute_x_bar(x, index)
                 self.y_bar = self.compute_y_bar(y, index)
-                self.fj = self.compute_fj(x, y, index, self.x_bar, self.y_bar)
+                self.fj = self.compute_fj(index, self.x_bar, self.y_bar)
 
             self.log_g_of_t.append(self.compute_log_g(x, y))
             self.dx_log_g_of_t.append(self.compute_dx_log_g(x, y))
@@ -53,7 +53,7 @@ class Metric(ABC):
         self.fj = None
 
     @abstractmethod
-    def compute_log_g(self, x, y) -> float:
+    def compute_log_g(self, x: int, y: int) -> float:
         raise Exception("Undefined function for log_g")
 
     @abstractmethod
@@ -61,15 +61,15 @@ class Metric(ABC):
         return ddx(self.log_g, x, y)
 
     @abstractmethod
-    def compute_dy_log_g(self, x, y) -> float:
+    def compute_dy_log_g(self, x: int, y: int) -> float:
         return ddy(self.log_g, x, y)
 
     @abstractmethod
-    def compute_curvature(self, x, y) -> float:
+    def compute_curvature(self, x: int, y: int) -> float:
         return -(dddx(self.log_g, x, y) + dddy(self.log_g, x, y)) / (2 * math.exp(self.log_g(x, y)))
 
     @abstractmethod
-    def display(self, x_values, y_values):
+    def display(self, x_values: list, y_values: list):
         if len(x_values) != len(y_values):
             raise Exception("Set of x and y points are not of the same length.")
         else:

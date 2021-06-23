@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 
 
-class Domain(ABC):
-    def __init__(self, max_radius):
+class BaseDomain(ABC):
+    def __init__(self, max_radius: int):
         self.boundaries = []
         self.dx_boundaries = []
         self.ddx_boundaries = []
