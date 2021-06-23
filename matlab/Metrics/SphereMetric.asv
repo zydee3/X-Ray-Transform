@@ -1,0 +1,31 @@
+classdef SphereMetric < Metric
+    
+    properties
+        radius
+    end
+    
+    methods
+        function obj = SphereMetric(radius)
+            obj.radius = radius;
+            
+            R2 = radius*radius;
+            obj.lg   = @(x,y) log((4*R^4) / ((x.*x + y.*y + R2)*(x.*x + y.*y + R2)));
+            obj.dxlg = @(x,y) -4.*x./(x.*x + y.*y + R2);
+            obj.dylg = @(x,y) -4.*y./(x.*x + y.*y + R2);
+            obj.curv = @(x,y) 1/R2;
+        end
+        
+        function [lgt,dxlgt,dylgt] = metricVals(obj, X, Y)
+            s = size(X);
+            lgt   = zeros(s);
+            dxlgt = zeros(s);
+            dylgt = zeros(s);
+        end
+        
+    end
+end
+
+function out = sumsq(x,y,R)
+    uo
+end
+
