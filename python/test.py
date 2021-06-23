@@ -1,4 +1,4 @@
-from x_ray_transformation import BaseDomain, Surface, Hyperbolic, Euclidean, Gaussian, Polynomial, Sphere
+from x_ray_transformation import Surface, Circle, Cosine, Ellipse, Hyperbolic, Euclidean, Gaussian, Polynomial, Sphere
 from random import randrange
 
 
@@ -15,10 +15,11 @@ def test_metrics(num_elements: int = 1, x_values=None, y_values=None, lower_boun
 
     try:
         for metric in metrics:
-            domain = BaseDomain(1)
+            domain = Circle(1)
             surface = Surface(domain, metric)
             surface.metric.compute_values(x_values, y_values)
 
             print(surface.metric.__str__())
     except Exception as exception:
         print("Exception Raised: ", exception)
+
