@@ -1,25 +1,26 @@
 classdef CosineDomain < Domain
     
     properties
-        radius = 2
-        amplitude = 0.111
-        cycles = 4
+        radius
+        amplitude
+        cycles
     end
     
     methods
         function obj = CosineDomain(radius, amplitude, cycles)
-            if (nargin < 3), cycles = obj.cycles; end % !! TODO: Better way of doing this? !!
-            if (nargin < 2), amplitude = obj.amplitude; end
-            if (nargin == 0), radius = obj.radius; end
+            arguments
+                radius (1,1) {mustBeNumeric} = 2;
+                amplitude (1,1) {mustBeNumeric} = 0.111;
+                cycles (1,1) {mustBeInteger} = 4;
+            end
             
             obj.radius = radius;
             obj.amplitude = amplitude;
-            obj.cycles = floor(cycles);
-            n = obj.cycles;
+            obj.cycles = cycles;
                         
-            obj.bdr = @(th) radius + amplitude*cos(n*th);
-            obj.dbdr = @(th) -n*amplitude*sin(n*th);
-            obj.ddbdr = @(th) -n*n*amplitude*cos(n*th);
+            obj.bdr = @(th) radius + amplitude*cos(cycles*th);
+            obj.dbdr = @(th) -cycles*amplitude*sin(cycles*th);
+            obj.ddbdr = @(th) -cycles*cycles*amplitude*cos(cycles*th);
             obj.rMax = radius + amplitude;         
         end    
     end    

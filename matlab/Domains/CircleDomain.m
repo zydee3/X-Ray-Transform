@@ -1,13 +1,15 @@
 classdef CircleDomain < Domain
         
     properties
-        radius = 2
+        radius
     end
     
     methods
         
         function obj = CircleDomain(radius)  
-            if (nargin == 0), radius = obj.radius; end % !! TODO: Better way of doing this? !!
+            arguments
+                radius (1,1) {mustBeNumeric} = 2
+            end
             
             obj.radius = radius;
             
