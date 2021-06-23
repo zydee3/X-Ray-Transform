@@ -1,5 +1,5 @@
-from .metric import Metric
-from .domain import Domain
+from .metric.base_metric import Metric
+from .domain.base_domain import Domain
 
 
 class Surface:

@@ -1,4 +1,4 @@
-from ..metric import Metric
+from .base_metric import Metric
 
 
 class Euclidean(Metric):
