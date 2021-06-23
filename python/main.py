@@ -2,4 +2,4 @@ from x_ray_transformation import Domain, Surface, Hyperbolic, Euclidean, Gaussia
 from test import test_metrics
 
 
-# test_metrics(x_values=[0, 1], y_values=[5, 6])
+test_metrics(x_values=[0.3, 1], y_values=[0.3, 6])

@@ -15,7 +15,7 @@ def test_metrics(num_elements: int = 1, x_values=None, y_values=None, lower_boun
 
     try:
         for metric in metrics:
-            domain = Domain()
+            domain = Domain(1)
             surface = Surface(domain, metric)
             surface.metric.compute_values(x_values, y_values)
 
