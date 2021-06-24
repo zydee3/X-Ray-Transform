@@ -24,6 +24,14 @@ classdef euclidMetric < Metric
             dxlgt = s;
             dylgt = s;
         end
+        
+        function [lgt,dxlgt,dylgt,curvt] = metricValsCurv(obj, X, Y)
+            s = zeros(size(X));
+            lgt   = s;
+            dxlgt = s;
+            dylgt = s;
+            curvt = s;
+        end
 
     end
 end

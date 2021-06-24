@@ -8,13 +8,14 @@ dc0 = Domain.build('circle', 'radius', 4, 'origin', [100000,100000000000000]);
 dcs0 = Domain.build('cosine', 'radius', 4, 'amplitude', 1, 'cycles', 4);
 dp0 = Domain.build('polygon', 'radius', 4, 'sides', 8);
 dsp0 = Domain.build('smoothpoly', 'radius', 3, 'sides', 3, 'bevelRadius', 0.3);
+de0 = Domain.build('ellipse', 'radiusA', 2, 'radiusB', 7);
 
 %% Metric.build
 m0 = Metric.build();
 
 me0 = Metric.build('euclid');
 mh0 = Metric.build('hyperbolic', 'radius', 4);
-mp0 = Metric.build('poly', 'coeffs', [12,0.43,5,2,-1,1]);
+mp0 = Metric.build('polynomial', 'coeffs', [0.2,0.43,5,2,-1,1]);
 ms0 = Metric.build('sphere', 'radius', 4);
 
 %% Metric (do not use)

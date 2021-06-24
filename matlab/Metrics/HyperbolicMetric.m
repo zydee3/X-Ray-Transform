@@ -16,7 +16,9 @@ classdef hyperbolicMetric < Metric
         
         function out = lg(obj,x,y)
             R2 = obj.radius*obj.radius;
-            out = log((4*R2*R2) ./ diffsq(x.*x,y.*y,R2));
+            s = (R2 - (x.*x + y.*y));
+            R2os = R2./s; %lol this saves exactly 1 flop.
+            out = log(4*R2os.*R2os);
         end
         
         function out = dxlg(obj,x,y)
@@ -32,17 +34,26 @@ classdef hyperbolicMetric < Metric
         end
        
         
-        %{
         function [lgt,dxlgt,dylgt] = metricVals(obj, X, Y)
-            its fine for now ig
+            R2 = obj.radius*obj.radius;
+            s = (R2 - (X.*X + Y.*Y));
+            
+            lgt = log((4*R2*R2) ./ (s.*s));
+            dxlgt = 4.*X./s;
+            dylgt = 4.*Y./s;
         end
-        %}
+        
+        
+        function [lgt,dxlgt,dylgt,curvt] = metricValsCurv(obj, X, Y)
+            R2 = obj.radius*obj.radius;
+            s = (R2 - (X.*X + Y.*Y));
+            
+            lgt = log((4*R2*R2) ./ (s.*s));
+            dxlgt = 4*X./s;
+            dylgt = 4*Y./s;
+            curvt = -ones(size(X))/R2;
+        end
+        
         
     end
 end
-
-function out = diffsq(x,y,z) % minor optimization 
-    s = (z - (x+y));
-    out = s.*s;
-end
-

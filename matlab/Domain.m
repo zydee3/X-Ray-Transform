@@ -173,5 +173,6 @@ classdef Domain < handle
 
             obj = Domain.build(stin);
         end    
-    end 
+    end
+    
 end

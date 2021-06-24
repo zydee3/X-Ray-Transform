@@ -6,7 +6,8 @@ classdef Metric
         lgVAR = @(x,y) zeros(size(x));
     end    
     
-    methods
+    methods  
+        
         function out = lg(obj,x,y)
             out = obj.lgVAR(x,y);
         end
@@ -21,8 +22,8 @@ classdef Metric
         
         function out = curv(obj,x,y)
             out = -(dderiv(@(x0) obj.lg(x0,y), x) + ...
-                    dderiv(@(y0) obj.lg(x,y0), y)) ./ ...
-                   (2*exp(obj.lg(x,y)));
+                    dderiv(@(y0) obj.lg(x,y0), y)) .* ...
+                   (-2*exp(obj.lg(x,y)));
         end
         
         
@@ -75,8 +76,6 @@ classdef Metric
         function [lgt,dxlgt,dylgt,curvt] = metricValsCurv(obj, X, Y)
             %metricValsCurv Precompute values
             %   
-
-            warning("Method is slow, consider implementing a faster override of metricValsCurv or use a subclass of Metric.")
             
             if (nargin ~= 3)
                 error("Incorrect input arguments.")
@@ -92,10 +91,8 @@ classdef Metric
 
             xtmp = reshape(X,nr*nc,1);
             ytmp = reshape(Y,nr*nc,1);
-                    
-            lgt =   reshape(obj.lg(xtmp,ytmp)  , nr,nc);
-            dxlgt = reshape(obj.dxlg(xtmp,ytmp), nr,nc);
-            dylgt = reshape(obj.dylg(xtmp,ytmp), nr,nc);
+            
+            [lgt,dxlgt,dylgt] = metricVals(obj, X, Y);        
             curvt = reshape(obj.curv(xtmp,ytmp), nr,nc);
         end
         
