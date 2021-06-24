@@ -23,7 +23,7 @@ classdef Metric
         function out = curv(obj,x,y)
             out = -(dderiv(@(x0) obj.lg(x0,y), x) + ...
                     dderiv(@(y0) obj.lg(x,y0), y)) .* ...
-                   (-2*exp(obj.lg(x,y)));
+                   (2*exp(-obj.lg(x,y)));
         end
         
         
@@ -109,7 +109,7 @@ classdef Metric
             elseif (nargin ~= 1), warning("Incorrect input arguments, plotting over generic domain.");
             end
             
-            Z = metricVals(obj,X0,Y0); 
+            Z = exp(metricVals(obj,X0,Y0)/2); 
             Z = clamp(-7,Z,7); % clamp output % !! TODO make a parameter for this !!
             out = pcolor(X0,Y0,Z);
             
