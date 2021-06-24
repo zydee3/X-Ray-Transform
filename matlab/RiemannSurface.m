@@ -11,12 +11,11 @@ classdef RiemannSurface
     
     methods
         
-        %%%-- !! TODO: yo make this cleaner !!
         
         function obj = RiemannSurface(domain, metric)
             arguments
-                domain (1,1) {Domain.mustBeDomain} = CircleDomain()
-                metric (1,1) {Metric.mustBeMetric} = EuclidMetric()
+                domain (1,1) {Domain.mustBeDomain} = circleDomain()
+                metric (1,1) {Metric.mustBeMetric} = euclidMetric()
             end
             
             obj.domain = domain;
@@ -31,13 +30,13 @@ classdef RiemannSurface
             
             dom = obj.domain;
             r = dom.rMax;
-            xo = dom.originX;
-            yo = dom.originY;
+            x0 = dom.originX;
+            y0 = dom.originY;
             
             met = obj.metric;
             pr = r * 1.1;
             
-            mp = met.plot((-pr:0.2:pr) + xo, (-pr:0.2:pr) + yo);
+            mp = met.plot((-pr:0.2:pr) + x0, (-pr:0.2:pr) + y0);
             dp = dom.plot();
             
             %dp.Color = [0.9,0.9,0.9];

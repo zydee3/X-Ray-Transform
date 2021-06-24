@@ -1,24 +1,36 @@
-classdef HyperbolicMetric < Metric
+classdef hyperbolicMetric < Metric
     
     properties
-        radius = 2
+        radius
     end
     
     methods
-        function obj = HyperbolicMetric(radius)
-            if (nargin == 0), radius = obj.radius; 
-            elseif(~isnumeric(radius))
-                error("Bad input arguments.")
+        function obj = hyperbolicMetric(args)
+            arguments
+                args.radius (1,1) {mustBeNumeric} = 2
             end
             
-            obj.radius = radius;
-            
-            R2 = radius*radius;
-            obj.lg   = @(x,y) log((4*R2*R2) ./ diffsq(x.*x,y.*y,R2)); % @(x,y) log(4*R^4) - 2*log(x.*x + y.*y + R*R);
-            obj.dxlg = @(x,y) 4.*x./(R2 - x.*x - y.*y);
-            obj.dylg = @(x,y) 4.*y./(R2 - x.*x - y.*y);
-            obj.curv = @(x,y) -ones(size(x))/R2;
+            obj.radius = args.radius;
         end
+        
+        
+        function out = lg(obj,x,y)
+            R2 = obj.radius*obj.radius;
+            out = log((4*R2*R2) ./ diffsq(x.*x,y.*y,R2));
+        end
+        
+        function out = dxlg(obj,x,y)
+            out = 4.*x./(obj.radius*obj.radius - x.*x - y.*y);
+        end
+        
+        function out = dylg(obj,x,y)
+            out = 4.*y./(obj.radius*obj.radius - x.*x - y.*y);
+        end
+        
+        function out = curv(obj,x,y)
+            out = -ones(size(x))/(obj.radius*obj.radius);
+        end
+       
         
         %{
         function [lgt,dxlgt,dylgt] = metricVals(obj, X, Y)

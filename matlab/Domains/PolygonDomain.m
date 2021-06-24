@@ -1,44 +1,41 @@
-classdef PolygonDomain < Domain
+classdef polygonDomain < Domain
     
     properties
-        radius = 2
+        radius = 2 
         sides = 4
     end
     
     methods
-        function obj = PolygonDomain(radius, sides)
+        function obj = polygonDomain(args)
             arguments
-                radius (1,1) {mustBeNumeric} = 2;
-                sides (1,1) {mustBeNumeric} = 2;
+                args.radius (1,1) {mustBeNumeric} = 2;
+                args.sides (1,1) {mustBeInteger} = 2;
             end
             
-            obj.radius = radius;
-            obj.sides = floor(sides);
-                        
-            obj.bdr = @(th) bdr(th,obj.radius,obj.sides);
-            obj.dbdr = @(th) dbdr(th,obj.radius,obj.sides);
-            obj.ddbdr = @(th) ddbdr(th,obj.radius,obj.sides);
-            obj.rMax = radius;         
-        end    
+            obj.radius = args.radius;
+            obj.sides = args.sides;
+            obj.rMax = obj.radius;        
+        end 
+        
+        function out = bdr(obj,th)
+            pion = pi/obj.sides;
+            th = mod(th,2*pion)-pion;
+            out = obj.radius*cos(pion) ./cos(th);
+        end
+
+        function out = dbdr(obj,th)
+            pion = pi/obj.sides;
+            th = mod(th,2*pion)-pion;
+            out = obj.radius * cos(pion) * sin(th)./cos(th).^2;
+        end
+
+        function out = ddbdr(obj,th)
+            pion = pi/obj.sides;
+            th = mod(th,2*pion)-pion;
+            out = obj.radius * cos(pion) * (sin(th).^2+1)./cos(th).^3;
+        end
     end    
     
 end
 
 
-function r = bdr(th,r,s)
-    pion = pi/s;
-    th = mod(th,2*pion)-pion;
-    r = r*cos(pion) ./cos(th);
-end
-
-function r = dbdr(th,r,s)
-    pion = pi/s;
-    th = mod(th,2*pion)-pion;
-    r = r*cos(pion) *sin(th)./cos(th).^2;
-end
-
-function r = ddbdr(th,r,s)
-    pion = pi/s;
-    th = mod(th,2*pion)-pion;
-    r = r*cos(pion) *(sin(th).^2+1)./cos(th).^3;
-end

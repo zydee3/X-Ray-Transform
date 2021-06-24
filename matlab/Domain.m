@@ -1,96 +1,62 @@
-classdef Domain
+classdef Domain < handle
     %DOMAIN Parent class of all other domains
     
     properties
-        bdr = @(th) 1;
-        dbdr = @(th) 0;
-        ddbdr = @(th) 0;
-        
-        rMax = 1;
-        
         originX = 0; % Handle these values after construction
         originY = 0;
         theta = 0;
     end
     
-    properties (Dependent)
-        alNorm
-    end
-    
-    methods (Static)
-        
-       function mustBeDomain(obj)
-           if (~isa(obj,'Domain'))
-               error("Value must be a Domain");
-           end
-       end    
-       
+    properties (Access = 'private')
+        bdrVAR = @(th) ones(size(th));
     end    
     
+    properties (SetAccess = 'protected')
+        rMax;
+    end    
+    
+    
     methods
-        function obj = Domain(argA, argB, argC) % -- !! TODO: i want to rework this constructor to accept more flavours of input
+        function out = bdr(obj,th)
+            out = obj.bdrVAR(th);
+        end
+        
+        function out = dbdr(obj,th)
+            warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
+            out = dderiv(obj.bdrVAR, th);
+        end
+        
+        function out = ddbdr(obj,th)
+            warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
+            out = dderiv(obj.bdrVAR, th);
+        end
+        
+        
+        
+        function obj = Domain(bdr, rMax)
         if (strcmp(class(obj), 'Domain')) %%% -- !! TODO: hack to avoid subclass calling superclass constructor, should prolly change !!    
-            % -- !! Todo, accept origin as an arg !!
-
-            if (nargin == 0), return; end
+            if (nargin == 2 && ...
+                isa(bdr,'function_handle') && nargin(lg) == 1 && ...
+                isnumeric(rMax) && all(size(rMax)==1))
             
-            if (nargin == 1)   
-                if (isnumeric(argA)) % argA = \theta
-                    obj.theta = argA;
-                    return;            
-  
-                    
-                    
-                elseif (isa(argA,'struct')) % converts from struct
-                    % !! TODO: Exception for not having vvvv these vvvv fields !!
-                    obj.bdr   = argA.bdr;
-                    obj.dbdr  = argA.dbdr;
-                    obj.ddbdr = argA.ddbdr;
-                    obj.rMax  = argA.rMax;
-                                            
-                    if (isfield(argB, 'originX')), obj.originX = argB.origin; else, obj.originX = [0,0]; end  
-                    if (isfield(argB, 'originY')), obj.originY = argB.origin; else, obj.originY = [0,0]; end 
-                    if (isfield(argB, 'theta')), obj.theta = argB.theta; else, obj.originY = [0,0]; end 
-                    return;
-                end
-                
-                
-                
-            elseif (nargin == 2) 
-                if (isnumeric(argA) && isnumeric(argB)) % argA,B = originX,Y
-                    obj.originX = argA;
-                    obj.originY = argB;
-                    return; 
-                    
-                    
-                    
-                elseif (isa(argA,'function_handle') && nargin(argA) == 1 && isnumeric(argB)) % argA = r(\theta), argB is an upper bound of r
-                    obj.bdr   = argA;
-                    obj.dbdr  = @(x) deriv(argA, x);
-                    obj.ddbdr = @(x) dderiv(argA,x);
-                    obj.rMax  = argB;
-                    return;    
-                end    
-                
-            
-                
-            elseif (nargin == 3)    
-                if (isnumeric(argA) && isnumeric(argB) && isnumeric(argC)) % argA = theta, argB,C = originX,Y
-                    obj.theta = argA;
-                    obj.originX = argB;
-                    obj.originY = argC;
-                    return; 
-                end    
+                obj.bdrVAR = bdr;
+                obj.rMax = rMax;
             end
-            
-            
-            error("Bad input arguments.")
-            
-                       
             
         end,end   
         
+    
+        function [bdr,dbdr,ddbdr] = getHandles(obj)
+            bdr = @(t) obj.bdr(t);
+            dbdr = @(t) obj.dbdr(t);
+            ddbdr = @(t) obj.ddbdr(t);
+        end 
         
+        
+        function out = alNorm(obj)
+            aln = @(th) angle(obj.bdr(th).*cos(th) + obj.dbdr(th).*sin(th) + 1i *(obj.bdr(th).*sin(th) - obj.dbdr(th).*cos(th))); 
+        end  
+    
         
         function obj = transform(obj, argA, argB, argC) % !! TODO: This bit of code is redudnant with the constructor, fix !!
             if (nargin == 1 && isnumeric(argA))   
@@ -110,21 +76,18 @@ classdef Domain
         end    
             
         
-        
-        function aln = get.alNorm(obj) % !! TODO: Bad implementation, initialize this in the constructor !!
-            aln = @(th) angle(obj.bdr(th).*cos(th) + obj.dbdr(th).*sin(th) + 1i *(obj.bdr(th).*sin(th) - obj.dbdr(th).*cos(th))); 
-        end    
-        
-        
-        
+    
         function out = plot(obj) % !! TODO: make nicer lool!!
             %plot Displays boundry
             
             n = 200;
             th = 2*pi*(1:n+1)/n;
+            th0 = obj.theta;
+            x0 = obj.originX;
+            y0 = obj.originY;
             r = obj.bdr(th);
-            pointX = cos(th) .* r;
-            pointY = sin(th) .* r;
+            pointX = cos(th - th0) .* r + x0;
+            pointY = sin(th - th0) .* r + y0;
             
             out = plot(pointX,pointY);
         end
@@ -132,4 +95,83 @@ classdef Domain
                
         
     end
+    
+    methods (Static)
+       function mustBeDomain(obj)
+           if (~isa(obj,'Domain'))
+               error("Value must be a Domain");
+           end
+       end     
+
+       
+       function obj = build(varargin)
+            obj = Domain();
+            if (nargin == 0), return;
+
+            elseif (nargin == 1)
+                varargin = varargin{1};
+                if (isa(varargin,'struct'))
+                    if (isfield(varargin, 'type') && isfield(varargin,'args')) % check if this is a parsed struct
+                        if (~strcmp(varargin.type, 'default'))
+                            name = lower(varargin.type) + "Domain"; 
+                            if (exist(name,'class') == 8)
+                                argNames = fieldnames(varargin.args);
+                                celin = cell(1,length(argNames) * 2+1);
+                                celin{1} = name;
+                                for i = 1:(numel(argNames))
+                                    celin{2*i} = argNames{i};
+                                    celin{2*i+1} = varargin.args.(argNames{i});
+                                end
+                                obj = feval(celin{:});
+
+                            end
+                        
+                        end
+                    else    
+                        obj.bdr   = varargin.bdr;
+                        obj.dbdr  = varargin.dbdr;
+                        obj.ddbdr = varargin.ddbdr;
+                        obj.rMax  = varargin.rMax;
+                    end
+                    obj.theta = varargin.theta;
+                    obj.originX = varargin.originX;
+                    obj.originY = varargin.originY;
+                    return;
+                end
+            elseif (nargin > 1) 
+                
+            end    
+
+
+            p = inputParser; % it parses inputs
+            p.KeepUnmatched = true;
+            p.PartialMatching = false;
+            p.FunctionName = 'Domain.build';
+
+            isAString = @(in) isstring(in) || ischar(in);
+            isANumber = @(in) isnumeric(in);
+            isA2Vector = @(in) isnumeric(in) && all(size(in) == [1,2]);
+            isA1Handle = @(in) isa(in,'function_handle') && nargin(in) == 1;
+
+            addOptional(p,'type','default',isAString);
+
+            addParameter(p,'theta',obj.theta,isANumber);
+            addParameter(p,'origin',[obj.originX,obj.originY],isA2Vector);
+
+            addParameter(p,'bdr',@(t) obj.bdr(t),isA1Handle);
+            addParameter(p,'dbdr',@(t) obj.dbdr(t),isA1Handle);
+            addParameter(p,'ddbdr',@(t) obj.ddbdr(t),isA1Handle);
+            addParameter(p,'rMax',obj.rMax,isANumber);
+
+            parse(p,varargin{:})
+            r = p.Results;
+            stin.type = r.type;
+            stin.theta = r.theta;
+            stin.originX = r.origin(1);
+            stin.originY = r.origin(2);
+            stin.args = p.Unmatched;
+
+            obj = Domain.build(stin);
+        end    
+    end 
 end

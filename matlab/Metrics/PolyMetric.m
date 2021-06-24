@@ -1,22 +1,36 @@
-classdef PolyMetric < Metric
+classdef polyMetric < Metric
 
     properties
-        coeffs = [0,0,0,0,0,1]
+        coeffs (1,6) {mustBeNumeric}
     end    
     
     methods
-        function obj = PolyMetric(coeffs)
-            if (nargin == 0), coeffs = obj.coeffs; 
-            elseif(~isnumeric(coeffs) || ~all(size(coeffs)==[1,6]))
-                error('Bad input arguments.');
-            end % !! TODO: Better way of doing this? !!
+        function obj = polyMetric(args)
+            arguments
+                args.coeffs (1,6) {mustBeNumeric} = [0,0,0,0,0,1]
+            end
             
-            obj.coeffs = coeffs;
-            
-            obj.lg = @(x,y) coeffs(1)*x.^2 + coeffs(2)*x.*y + coeffs(3)*y.^2 + coeffs(4)*x + coeffs(5)*y + coeffs(6);
-            obj.dxlg = @(x,y) 2*coeffs(1)*x + coeffs(2)*y + coeffs(4);
-            obj.dylg = @(x,y) coeffs(2)*x + 2*coeffs(3)*y + coeffs(5);
-            obj.curv = @(x,y) -exp(-obj.lg(x,y)).*(coeffs(1) + coeffs(3));
+            obj.coeffs = args.coeffs;
+        end
+        
+        function out = lg(obj,x,y)
+            c = obj.coeffs;
+            out = c(1)*x.^2 + c(2)*x.*y + c(3)*y.^2 + c(4)*x + c(5)*y + c(6);
+        end
+        
+        function out = dxlg(obj,x,y)
+            c = obj.coeffs;
+            out = 2*c(1)*x + c(2)*y + c(4);
+        end
+        
+        function out = dylg(obj,x,y)
+            c = obj.coeffs;
+            out = c(2)*x + 2*c(3)*y + c(5);
+        end
+        
+        function out = curv(obj,x,y)
+            c = obj.coeffs;
+            out = -exp(-obj.lg(x,y)).*(c(1) + c(3));
         end
         
         %{

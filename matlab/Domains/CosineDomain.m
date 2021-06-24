@@ -1,4 +1,4 @@
-classdef CosineDomain < Domain
+classdef cosineDomain < Domain
     
     properties
         radius
@@ -7,22 +7,32 @@ classdef CosineDomain < Domain
     end
     
     methods
-        function obj = CosineDomain(radius, amplitude, cycles)
+        function obj = cosineDomain(args)
             arguments
-                radius (1,1) {mustBeNumeric} = 2;
-                amplitude (1,1) {mustBeNumeric} = 0.111;
-                cycles (1,1) {mustBeInteger} = 4;
+                args.radius (1,1) {mustBeNumeric} = 2;
+                args.amplitude (1,1) {mustBeNumeric} = 0.111;
+                args.cycles (1,1) {mustBeInteger} = 4;
             end
             
-            obj.radius = radius;
-            obj.amplitude = amplitude;
-            obj.cycles = cycles;
-                        
-            obj.bdr = @(th) radius + amplitude*cos(cycles*th);
-            obj.dbdr = @(th) -cycles*amplitude*sin(cycles*th);
-            obj.ddbdr = @(th) -cycles*cycles*amplitude*cos(cycles*th);
-            obj.rMax = radius + amplitude;         
+            obj.radius = args.radius;
+            obj.amplitude = args.amplitude;
+            obj.cycles = args.cycles;
+            obj.rMax = obj.radius + obj.amplitude; 
         end    
+        
+        function out = bdr(obj,th)
+            out = obj.radius + obj.amplitude * cos(obj.cycles*th);
+        end
+
+        function out = dbdr(obj,th)
+            c = obj.cycles
+            out = -c * obj.amplitude * sin(c*th);
+        end
+
+        function out = ddbdr(obj,th)
+            c = obj.cycles
+            out = -c*c * obj.amplitude * cos(c*th);
+        end
     end    
     
 end

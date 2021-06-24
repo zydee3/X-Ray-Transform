@@ -1,4 +1,4 @@
-classdef CircleDomain < Domain
+classdef circleDomain < Domain
         
     properties
         radius
@@ -6,18 +6,26 @@ classdef CircleDomain < Domain
     
     methods
         
-        function obj = CircleDomain(radius)  
+        function obj = circleDomain(args)  
             arguments
-                radius (1,1) {mustBeNumeric} = 2
+                args.radius (1,1) {mustBeNumeric} = 2
             end
             
-            obj.radius = radius;
-            
-            obj.bdr = @(th) radius; % !! TODO: Obj dont change dynamically, write a set method and reconstruct from there? !!
-            obj.dbdr = @(th) 0;
-            obj.ddbdr = @(th) 0;
-            obj.rMax = radius;            
+            obj.radius = args.radius;
+            obj.rMax = obj.radius;                     
         end   
+        
+        function out = bdr(obj,th)
+            out = obj.radius * ones(size(th));
+        end
+
+        function out = dbdr(obj,th)
+            out = zeros(size(th));
+        end
+
+        function out = ddbdr(obj,th)
+            out = zeros(size(th));
+        end
          
         
     end    

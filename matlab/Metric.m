@@ -1,71 +1,51 @@
 classdef Metric
     %METRIC Parent class of other metrics
     %   - Default implementation of a metric.
-    %   - Constructor defaults to euclidean, but accepts a function handle
-    %   "g" so that the metric is conformal to the euclidean metric by 
-    %   e^{log(g)}.
-    %   - This class provides a display function and numerical precompute 
-    %   methods. 
-    
-    properties        
-        lg   = @(x,y) zeros(size(x));
-        dxlg = @(x,y) zeros(size(x));
-        dylg = @(x,y) zeros(size(x));
-        curv = @(x,y) zeros(size(x));   
-    end
-    
-   methods (Static)
-        
-       function mustBeMetric(obj)
-           if (~isa(obj,'Metric'))
-               error("Value must be a Metric");
-           end
-       end    
-       
-    end  
+
+    properties (Access = 'private')
+        lgVAR = @(x,y) zeros(size(x));
+    end    
     
     methods
+        function out = lg(obj,x,y)
+            out = obj.lgVAR(x,y);
+        end
         
-        function obj = Metric(argA, argB)
-        if (strcmp(class(obj), 'Metric')) %%% -- !! TODO: hack to avoid subclass calling superclass constructor, should prolly change !! 
-            %METRIC Construct an instance of this class
-            %   
-                if (nargin == 0), return; end
-            
-                if (nargin == 1)   
-                    if (isa(argA,'Metric') || isa(argA,'struct')) % Casts, we shouldn't need this.
-                        obj.lg   = argA.lg;
-                        obj.dxlg = argA.dxlg;
-                        obj.dylg = argA.dylg;
-                        obj.curv = argA.curv;    
-                        return;
-                        
-                        
-                        
-                    elseif (isa(argA,'function_handle') && nargin(argA) == 2) % argA = g, computes the rest
-                        warning("Metrics constructed by anonymous functions are very slow. Consider using or creating a subclass of metric.")
-                        g = argA;
-                        obj.lg   = @(x,y) log(g(x,y));
-                        obj.dxlg = @(x,y) deriv(@(x0) log(g(x0,y)), x);
-                        obj.dylg = @(x,y) deriv(@(y0) log(g(x,y0)), y);
-                        obj.curv = @(x,y) -(dderiv(@(x0) log(g(x0,y)), x) + ...
-                                            dderiv(@(y0) log(g(x,y0)), y)) ./ ...
-                                           (2*g(x,y));  
-                        return;
-                     
-                        
-                    end    
-                elseif (nargin == 2)                    % argA = type, argB = params
-                    
-                    return
-                end
-                
-                
-                error("Bad input arguments.")                    
+        function out = dxlg(obj,x,y)
+            out = deriv(@(x0) obj.lg(x0,y), x);
+        end
+        
+        function out = dylg(obj,x,y)
+            out = deriv(@(y0) obj.lg(x,y0), y);
+        end
+        
+        function out = curv(obj,x,y)
+            out = -(dderiv(@(x0) obj.lg(x0,y), x) + ...
+                    dderiv(@(y0) obj.lg(x,y0), y)) ./ ...
+                   (2*exp(obj.lg(x,y)));
+        end
+        
+        
+        
+        function obj = Metric(lg)
+        if (strcmp(class(obj), 'Metric')) 
+            if (nargin == 1 && isa(lg,'function_handle') && nargin(lg) == 2)
+                obj.lgVAR = lg;
+            end
+              
         end,end 
                
     
     
+        function [lg,dxlg,dylg,curv] = getHandles(obj)
+            lg = @(x,y) obj.lg(x,y);
+            dxlg = @(x,y) obj.dxlg(x,y);
+            dylg = @(x,y) obj.dylg(x,y);
+            curv = @(x,y) obj.curv(x,y);
+        end    
+    
+        
+        
         function [lgt,dxlgt,dylgt] = metricVals(obj, X, Y)
             %metricVals Precompute values over pairs of (x,y)
             %   
@@ -112,7 +92,7 @@ classdef Metric
 
             xtmp = reshape(X,nr*nc,1);
             ytmp = reshape(Y,nr*nc,1);
-        
+                    
             lgt =   reshape(obj.lg(xtmp,ytmp)  , nr,nc);
             dxlgt = reshape(obj.dxlg(xtmp,ytmp), nr,nc);
             dylgt = reshape(obj.dylg(xtmp,ytmp), nr,nc);
@@ -133,7 +113,7 @@ classdef Metric
             end
             
             Z = metricVals(obj,X0,Y0); 
-            Z = clamo(-7,Z,7); % clamp output % !! TODO make a parameter for this !!
+            Z = clamp(-7,Z,7); % clamp output % !! TODO make a parameter for this !!
             out = pcolor(X0,Y0,Z);
             
             out.EdgeColor = 'none';
@@ -155,7 +135,7 @@ classdef Metric
             
             [lgt,dxlgt,dylgt,curvt] = metricValsCurv(obj,X0,Y0);
             
-            m = -2; M = 2;
+            m = -10; M = 10;
             lgt = clamp(m,lgt,M); % clamp output
             dxlgt = clamp(m,dxlgt,M); % !! TODO make a parameter for this !!
             dylgt = clamp(m,dylgt,M);
@@ -182,7 +162,77 @@ classdef Metric
         
         
         
-    end
+    end    
+    
+    methods (Static)
+       function mustBeMetric(obj)           
+           if (~isa(obj,'Metric'))
+               error("Value must be a Metric");
+           end
+       end    
+       
+       
+       
+       function obj = build(varargin)
+           obj = Metric();
+            if (nargin == 0), return; 
+            
+            elseif (nargin == 1)
+                varargin = varargin{1};
+                if (isa(varargin,'struct'))
+                    if (isfield(varargin, 'type') && isfield(varargin,'args')) % check if this is a parsed struct
+                        if (~strcmp(varargin.type, 'default'))
+                            name = lower(varargin.type) + "Metric"; 
+                            if (exist(name,'class') == 8)
+
+                                argNames = fieldnames(varargin.args);
+                                celin = cell(1,length(argNames) * 2+1);
+                                celin{1} = name;
+                                for i = 1:numel(argNames)
+                                    celin{i+1} = argNames{i};
+                                    celin{i+2} = varargin.args.(argNames{i});
+                                end
+
+                                obj = feval(celin{:});
+
+                            end
+                        else    
+                            obj.lg   = varargin.lg;
+                            obj.dxlg = varargin.dxlg;
+                            obj.dylg = varargin.dylg;
+                            obj.curv = varargin.curv;
+                        end
+                        return;
+                    end
+
+                end
+            elseif (nargin > 1) 
+                  
+            end
+            p = inputParser; % it parses inputs
+            p.KeepUnmatched = true;
+            p.PartialMatching = false;
+            p.FunctionName = 'Metric.build';
+
+            isAString = @(in) isstring(in) || ischar(in);
+            isA2Handle = @(in) isa(in,'function_handle') && nargin(in) == 2;
+
+            addOptional(p,'type','default',isAString);
+
+            if (isa(varargin,'cell'))
+                parse(p,varargin{:})
+            else
+                parse(p,varargin)
+            end    
+            r = p.Results;
+            stin.type = r.type;
+            stin.args = p.Unmatched;
+
+            obj = Metric.build(stin);
+        end    
+    end  
+    
+    
 end
 
 
