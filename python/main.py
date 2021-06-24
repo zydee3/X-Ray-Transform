@@ -2,4 +2,4 @@ from x_ray_transformation import Surface, Hyperbolic, Euclidean, Gaussian, Polyn
 from test import test_metrics
 
 
-test_metrics(x_values=[0.3, 1], y_values=[0.3, 6])
+test_metrics(num_elements=1000000)

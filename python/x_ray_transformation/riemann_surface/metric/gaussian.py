@@ -1,4 +1,5 @@
 from .base_metric import BaseMetric
+from .metric_type import MetricType
 import math
 
 
@@ -20,23 +21,24 @@ class Gaussian(BaseMetric):
         self.center_x = center_x
         self.center_y = center_y
         self.num_elements = len(widths)
+        self.metric_type = MetricType.gaussian
 
     def compute_values(self, x_values: list, y_values: list):
         super().compute_values(x_values, y_values)
 
-    def compute_log_g(self, x: int, y: int) -> float:
+    def compute_log_g(self, x: int, y: int, precomputed_values: list = None) -> float:
         previous_log_g = self.log_g_of_t[self.index - 1] if self.index > 0 else 0
         return previous_log_g + self.fj
 
-    def compute_dx_log_g(self, x: int, y: int) -> float:
+    def compute_dx_log_g(self, x: int, y: int, precomputed_values: list = None) -> float:
         previous_dx = self.dx_log_g_of_t[self.index - 1] if self.index > 0 else 0
         return previous_dx - self.x_bar / self.widths[self.index] * self.fj
 
-    def compute_dy_log_g(self, x: int, y: int) -> float:
+    def compute_dy_log_g(self, x: int, y: int, precomputed_values: list = None) -> float:
         previous_dy = self.dy_log_g_of_t[self.index - 1] if self.index > 0 else 0
         return previous_dy - self.y_bar / self.widths[self.index] * self.fj
 
-    def compute_curvature(self, x: int, y: int) -> float:
+    def compute_curvature(self, x: int, y: int, precomputed_values: list = None) -> float:
         previous_curvature = self.curvature[self.index - 1] if self.index > 0 else 0
         return previous_curvature + (self.x_bar ** 2 + self.y_bar ** 2 - 2) / self.widths[self.index] * self.fj
 
