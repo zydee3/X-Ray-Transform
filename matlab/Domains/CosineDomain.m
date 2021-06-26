@@ -17,7 +17,7 @@ classdef cosineDomain < Domain
             obj.radius = args.radius;
             obj.amplitude = args.amplitude;
             obj.cycles = args.cycles;
-            obj.rMax = obj.radius + obj.amplitude; 
+            %obj.rMax = obj.radius + obj.amplitude; 
         end    
         
         function out = bdr(obj,th)
@@ -25,12 +25,12 @@ classdef cosineDomain < Domain
         end
 
         function out = dbdr(obj,th)
-            c = obj.cycles
+            c = obj.cycles;
             out = -c * obj.amplitude * sin(c*th);
         end
 
         function out = ddbdr(obj,th)
-            c = obj.cycles
+            c = obj.cycles;
             out = -c*c * obj.amplitude * cos(c*th);
         end
     end    

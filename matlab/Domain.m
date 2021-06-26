@@ -1,4 +1,4 @@
-classdef Domain < handle
+classdef Domain
     %DOMAIN Parent class of all other domains
     
     properties
@@ -12,8 +12,9 @@ classdef Domain < handle
     end    
     
     properties (SetAccess = 'protected')
-        rMax;
+        %rMax; % now unused
     end    
+    
     
     
     methods
@@ -23,27 +24,27 @@ classdef Domain < handle
         
         function out = dbdr(obj,th)
             warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
-            out = dderiv(obj.bdrVAR, th);
+            out = deriv(@(t) obj.bdr(t), th);
         end
         
         function out = ddbdr(obj,th)
             warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
-            out = dderiv(obj.bdrVAR, th);
+            out = dderiv(@(t) obj.bdr(t), th);
         end
         
         
         
-        function obj = Domain(bdr, rMax)
+        function obj = Domain(bdr)
         if (strcmp(class(obj), 'Domain')) %%% -- !! TODO: hack to avoid subclass calling superclass constructor, should prolly change !!    
-            if (nargin == 2 && ...
-                isa(bdr,'function_handle') && nargin(lg) == 1 && ...
-                isnumeric(rMax) && all(size(rMax)==1))
-            
+            if (nargin == 1 && ...
+                isa(bdr,'function_handle') && nargin(lg) == 1)
+                
                 obj.bdrVAR = bdr;
-                obj.rMax = rMax;
+                %obj.rMax = rMax;
             end
             
         end,end   
+    
         
     
         function [bdr,dbdr,ddbdr] = getHandles(obj)
@@ -53,9 +54,12 @@ classdef Domain < handle
         end 
         
         
-        function out = alNorm(obj)
-            aln = @(th) angle(obj.bdr(th).*cos(th) + obj.dbdr(th).*sin(th) + 1i *(obj.bdr(th).*sin(th) - obj.dbdr(th).*cos(th))); 
+        function out = alNorm(obj, th)
+            th = th - obj.theta;
+            out = angle(obj.bdr(th).*cos(th) + obj.dbdr(th).*sin(th) + 1i *...
+                        (obj.bdr(th).*sin(th) - obj.dbdr(th).*cos(th))); 
         end  
+              
     
         
         function obj = transform(obj, argA, argB, argC) % !! TODO: This bit of code is redudnant with the constructor, fix !!
@@ -85,14 +89,80 @@ classdef Domain < handle
             th0 = obj.theta;
             x0 = obj.originX;
             y0 = obj.originY;
-            r = obj.bdr(th);
-            pointX = cos(th - th0) .* r + x0;
-            pointY = sin(th - th0) .* r + y0;
+            r = obj.dbdr(th - th0);
+            pointX = cos(th) .* r + x0;
+            pointY = sin(th) .* r + y0;
             
-            out = plot(pointX,pointY);
+            out = plot(pointX,pointY,'b');
         end
         
-               
+        
+        function out = plotAABB(obj)
+            %plot Displays the axis aligned bounding box of the domain
+           
+            [minB,maxB] = obj.getBoundingBox();
+            pointX = [maxB(1),maxB(1),minB(1),minB(1),maxB(1)] + obj.originX;
+            pointY = [maxB(2),minB(2),minB(2),maxB(2),maxB(2)] + obj.originY;
+            out = plot(pointX,pointY,'b');
+        end
+        
+        
+        function out = plotOrigin(obj) % !! TODO: make nicer lool!!
+            %plot Displays the axis aligned bounding box of the domain
+            out = plot(obj.originX,obj.originY,'b*');
+        end
+        
+        function out = plotAlNorm(obj) % !! TODO: make nicer lool!!
+            %plot Plots with alNorm
+            
+            holdBool = ishold;
+            hold on;
+            
+            n = 250;
+            th = linspace(0,2*pi,n);
+            th0 = obj.theta;
+            x0 = obj.originX;
+            y0 = obj.originY;
+            r = obj.bdr(th - th0);
+            an = obj.alNorm(th) + th0;
+            pointX = cos(th) .* r + x0;
+            pointY = sin(th) .* r + y0;
+            [minB,maxB] = obj.getBoundingBox();
+            als = 0.05*max(abs([minB,maxB]));
+                        
+            for i = 1:n
+                plot(pointX(i) + als*[0, cos(an(i))],...
+                     pointY(i) + als*[0, sin(an(i))],...
+                     'b');
+            end
+            
+            plot(pointX,pointY,'b');
+            if (~holdBool), hold off; end;
+        end
+        
+        
+        function out = plotALL(obj)
+            holdBool = ishold;
+            hold on;
+            
+            obj.plotAABB();
+            obj.plotAlNorm();
+            obj.plotOrigin();
+            
+            if (~holdBool), hold off; end;
+        end
+        
+                       
+        function [minB,maxB] = getBoundingBox(obj) 
+            %warning('Method "updateMinMax" is slow, consider overriding.'); % consider implementing a faster numerical update to this method, something with newtons itter could work
+            rSamples = obj.bdr(linspace(0,2*pi, 1000) - obj.theta);
+            eSamples = cos(linspace(0,2*pi, 1000)).* rSamples;
+            minB = [min(eSamples),0];
+            maxB = [max(eSamples),0];
+            eSamples = sin(linspace(0,2*pi, 1000)).* rSamples;
+            minB(2) = min(eSamples);
+            maxB(2) = max(eSamples);
+        end         
         
     end
     
@@ -131,7 +201,6 @@ classdef Domain < handle
                         obj.bdr   = varargin.bdr;
                         obj.dbdr  = varargin.dbdr;
                         obj.ddbdr = varargin.ddbdr;
-                        obj.rMax  = varargin.rMax;
                     end
                     obj.theta = varargin.theta;
                     obj.originX = varargin.originX;
@@ -161,7 +230,6 @@ classdef Domain < handle
             addParameter(p,'bdr',@(t) obj.bdr(t),isA1Handle);
             addParameter(p,'dbdr',@(t) obj.dbdr(t),isA1Handle);
             addParameter(p,'ddbdr',@(t) obj.ddbdr(t),isA1Handle);
-            addParameter(p,'rMax',obj.rMax,isANumber);
 
             parse(p,varargin{:})
             r = p.Results;
@@ -173,6 +241,9 @@ classdef Domain < handle
 
             obj = Domain.build(stin);
         end    
+        
+       
+        
     end
     
 end

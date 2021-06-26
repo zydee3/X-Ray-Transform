@@ -2,7 +2,7 @@ classdef circleDomain < Domain
         
     properties
         radius
-    end
+    end  
     
     methods
         
@@ -12,8 +12,8 @@ classdef circleDomain < Domain
             end
             
             obj.radius = args.radius;
-            obj.rMax = obj.radius;                     
         end   
+        
         
         function out = bdr(obj,th)
             out = obj.radius * ones(size(th));
@@ -27,6 +27,12 @@ classdef circleDomain < Domain
             out = zeros(size(th));
         end
          
+        
+        function [minB,maxB] = getBoundingBox(obj) 
+            r = obj.radius;
+            maxB = [r,r];
+            minB = -maxB;
+        end  
         
     end    
     

@@ -14,7 +14,7 @@ classdef polygonDomain < Domain
             
             obj.radius = args.radius;
             obj.sides = args.sides;
-            obj.rMax = obj.radius;        
+            %obj.rMax = obj.radius;        
         end 
         
         function out = bdr(obj,th)
@@ -34,6 +34,17 @@ classdef polygonDomain < Domain
             th = mod(th,2*pion)-pion;
             out = obj.radius * cos(pion) * (sin(th).^2+1)./cos(th).^3;
         end
+        
+        
+        function [minB,maxB] = getBoundingBox(obj) 
+            th0 = -obj.theta;
+            r = obj.radius;
+            pion = pi/obj.sides; 
+            maxB = r*[cos(mod(th0+pion, 2*pion) - pion),...
+                    cos(mod(th0+pi/2-pion, 2*pion) - pion)];
+            minB = r*[cos(mod(th0+pion+pi, 2*pion) - pion - pi),...
+                    cos(mod(th0-pion-pi/2, 2*pion) - pion-pi)];
+        end  
     end    
     
 end

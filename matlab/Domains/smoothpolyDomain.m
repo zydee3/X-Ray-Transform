@@ -18,8 +18,7 @@ classdef smoothpolyDomain < Domain
             obj.radius = args.radius;
             obj.sides = args.sides;
             obj.bevelRadius = max(0,min(args.bevelRadius,pi/obj.sides));
-            obj.rMax = obj.radius;
-              
+            %obj.rMax = obj.radius;
         end
         
         
