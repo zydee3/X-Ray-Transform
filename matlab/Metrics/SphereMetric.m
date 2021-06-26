@@ -16,8 +16,7 @@ classdef sphereMetric < Metric
         function out = lg(obj,x,y)
             R2 = obj.radius*obj.radius;
             s = (R2 + x.*x + y.*y);
-            R2os = R2./s; %lol this saves exactly 1 flop.
-            out = log(4 * R2os .* R2os);
+            out = log(4 * R2 * R2 / (s.*s));
         end
         
         function out = dxlg(obj,x,y)

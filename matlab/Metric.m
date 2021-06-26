@@ -23,7 +23,7 @@ classdef Metric
         function out = curv(obj,x,y)
             out = -(dderiv(@(x0) obj.lg(x0,y), x) + ...
                     dderiv(@(y0) obj.lg(x,y0), y)) .* ...
-                   (2*exp(-obj.lg(x,y)));
+                   (0.5*exp(-obj.lg(x,y)));
         end
         
         
@@ -111,10 +111,7 @@ classdef Metric
             
             Z = exp(metricVals(obj,X0,Y0)/2); 
             Z = clamp(-7,Z,7); % clamp output % !! TODO make a parameter for this !!
-            out = pcolor(X0,Y0,Z);
-            
-            out.EdgeColor = 'none';
-            out.FaceColor = 'interp';
+            out = contour(X0,Y0,Z);
         end
         
         
@@ -132,29 +129,27 @@ classdef Metric
             
             [lgt,dxlgt,dylgt,curvt] = metricValsCurv(obj,X0,Y0);
             
+            %%{
             m = -10; M = 10;
             lgt = clamp(m,lgt,M); % clamp output
             dxlgt = clamp(m,dxlgt,M); % !! TODO make a parameter for this !!
             dylgt = clamp(m,dylgt,M);
             curvt = clamp(m,curvt,M);
+            %%}
             
             figure;
-            subplot(2,2,1)
-            p = pcolor(X0,Y0,lgt);
-                p.EdgeColor = 'none';
-                p.FaceColor = 'interp';
-            subplot(2,2,2)
-            p = pcolor(X0,Y0,dxlgt);
-                p.EdgeColor = 'none';
-                p.FaceColor = 'interp';
-            subplot(2,2,3)
-            p = pcolor(X0,Y0,dylgt);
-                p.EdgeColor = 'none';
-                p.FaceColor = 'interp';
-            subplot(2,2,4)
-            p = pcolor(X0,Y0,curvt);
-                p.EdgeColor = 'none';
-                p.FaceColor = 'interp';
+            subplot(2,2,1);
+            p = surf(X0,Y0,lgt,'EdgeColor','none');
+            view(2); 
+            subplot(2,2,2);
+            p = surf(X0,Y0,dxlgt,'EdgeColor','none');
+            view(2); 
+            subplot(2,2,3);
+            p = surf(X0,Y0,dylgt,'EdgeColor','none');
+            view(2); 
+            subplot(2,2,4);
+            p = surf(X0,Y0,curvt,'EdgeColor','none');
+            view(2); 
         end
         
         

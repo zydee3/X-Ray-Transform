@@ -5,8 +5,6 @@ classdef RiemannSurface
     properties
         domain
         metric
-        
-        innerNorm
     end
     
     methods
@@ -29,15 +27,22 @@ classdef RiemannSurface
             hold on;
             
             dom = obj.domain;
-            r = dom.rMax;
+            [minB,maxB] = dom.getBoundingBox();
+            psizeX = 0.01 * (maxB(1) - minB(1));
+            psizeY = 0.01 * (maxB(2) - minB(2));
             x0 = dom.originX;
             y0 = dom.originY;
             
             met = obj.metric;
-            pr = r * 1.1;
             
-            mp = met.plot((-pr:0.2:pr) + x0, (-pr:0.2:pr) + y0);
-            dp = dom.plot();
+            met.plot((minB(1):psizeX:maxB(1)) + x0, (minB(2):psizeY:maxB(2)) + y0);
+            dom.plotAlNorm();
+            
+            %consider removing this
+                axis equal
+                border = max(maxB(1)-minB(1),maxB(2)-minB(2)) * 0.05;
+                xlim([minB(1),maxB(1)] + border * [-1,1] + x0); 
+                ylim([minB(2),maxB(2)] + border * [-1,1] + y0)
             
             %dp.Color = [0.9,0.9,0.9];
             

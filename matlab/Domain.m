@@ -56,10 +56,30 @@ classdef Domain
         
         function out = alNorm(obj, th)
             th = th - obj.theta;
-            out = angle(obj.bdr(th).*cos(th) + obj.dbdr(th).*sin(th) + 1i *...
+            out = 0.5*pi - atan2(obj.bdr(th).*cos(th) + obj.dbdr(th).*sin(th),...
                         (obj.bdr(th).*sin(th) - obj.dbdr(th).*cos(th))); 
         end  
+        
+        
+        function [minB,maxB] = getBoundingBox(obj) 
+            %warning('Method "updateMinMax" is slow, consider overriding.'); % consider implementing a faster numerical update to this method, something with newtons itter could work
+            rSamples = obj.bdr(linspace(0,2*pi, 1000) - obj.theta);
+            eSamples = cos(linspace(0,2*pi, 1000)).* rSamples;
+            minB = [min(eSamples),0];
+            maxB = [max(eSamples),0];
+            eSamples = sin(linspace(0,2*pi, 1000)).* rSamples;
+            minB(2) = min(eSamples);
+            maxB(2) = max(eSamples);
+        end   
               
+        
+        
+        function bool = isInside(obj, X, Y)
+            X = X - obj.originX;
+            Y = Y - obj.originY;
+            bool = sqrt(X.*X + Y.*Y) <= obj.bdr(atan2(Y,X) - obj.theta);            
+        end    
+        
     
         
         function obj = transform(obj, argA, argB, argC) % !! TODO: This bit of code is redudnant with the constructor, fix !!
@@ -89,7 +109,7 @@ classdef Domain
             th0 = obj.theta;
             x0 = obj.originX;
             y0 = obj.originY;
-            r = obj.dbdr(th - th0);
+            r = obj.bdr(th - th0);
             pointX = cos(th) .* r + x0;
             pointY = sin(th) .* r + y0;
             
@@ -130,13 +150,30 @@ classdef Domain
             [minB,maxB] = obj.getBoundingBox();
             als = 0.05*max(abs([minB,maxB]));
                         
-            for i = 1:n
-                plot(pointX(i) + als*[0, cos(an(i))],...
-                     pointY(i) + als*[0, sin(an(i))],...
-                     'b');
-            end
+            plot([pointX; pointX + als*cos(an)],...
+                 [pointY; pointY + als*sin(an)],...
+                 'b');
             
             plot(pointX,pointY,'b');
+            if (~holdBool), hold off; end;
+        end
+        
+        
+        function out = plotIsInsideTest(obj) % !! TODO: make nicer lool!!
+            %plot Plots random points to test isInside
+            
+            holdBool = ishold;
+            hold on;
+            
+
+            [minB,maxB] = obj.getBoundingBox();
+            pointX = rand(1,5000)*(maxB(1)-minB(1)) + minB(1) + obj.originX;
+            pointY = rand(1,5000)*(maxB(2)-minB(2)) + minB(2) + obj.originY;       
+            inside = obj.isInside(pointX, pointY);
+            
+            
+            plot(pointX(find(inside)),pointY(find(inside)),'g.');
+            plot(pointX(find(~inside)),pointY(find(~inside)),'r.');
             if (~holdBool), hold off; end;
         end
         
@@ -145,6 +182,7 @@ classdef Domain
             holdBool = ishold;
             hold on;
             
+            %obj.plotIsInsideTest();
             obj.plotAABB();
             obj.plotAlNorm();
             obj.plotOrigin();
@@ -152,18 +190,7 @@ classdef Domain
             if (~holdBool), hold off; end;
         end
         
-                       
-        function [minB,maxB] = getBoundingBox(obj) 
-            %warning('Method "updateMinMax" is slow, consider overriding.'); % consider implementing a faster numerical update to this method, something with newtons itter could work
-            rSamples = obj.bdr(linspace(0,2*pi, 1000) - obj.theta);
-            eSamples = cos(linspace(0,2*pi, 1000)).* rSamples;
-            minB = [min(eSamples),0];
-            maxB = [max(eSamples),0];
-            eSamples = sin(linspace(0,2*pi, 1000)).* rSamples;
-            minB(2) = min(eSamples);
-            maxB(2) = max(eSamples);
-        end         
-        
+       
     end
     
     methods (Static)

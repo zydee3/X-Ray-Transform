@@ -27,11 +27,11 @@ dcos0 = cosineDomain % a domain constructed with the default parameters
 dcos1 = cosineDomain('amplitude', 3, 'radius', 7); % doesnt reference 'cycles'
 dcos2 = Domain.build('cosine','radius', 7, 'amplitude', 3, 'origin', [100,200]); % same domain as above, but shifted somewhat
 
-%{
+
 figure, dcos0.plot
 figure, dcos1.plot
 figure, dcos2.plot
-%}
+
 
 
 %% Methods universally available to Metrics
