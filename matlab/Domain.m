@@ -194,9 +194,11 @@ classdef Domain
             
 
             [minB,maxB] = obj.getBoundingBox();
+            minR2 = obj.getMinRadius();
+            minR2 = minR2*minR2;
             pointX = rand(1,5000)*(maxB(1)-minB(1)) + minB(1) + obj.originX;
             pointY = rand(1,5000)*(maxB(2)-minB(2)) + minB(2) + obj.originY;       
-            inside = obj.isInside(pointX, pointY);
+            inside = obj.isInsideR2(pointX, pointY, minR2);
             
             
             plot(pointX(find(inside)),pointY(find(inside)),'g.');

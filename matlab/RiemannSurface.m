@@ -5,16 +5,27 @@ classdef RiemannSurface
     properties
         domain
         metric
+        
+        stepType
+        stepSize
+        geoDur
     end
     
     methods
         
         
-        function obj = RiemannSurface(domain, metric)
+        function obj = RiemannSurface(domain, metric, args)
             arguments
                 domain (1,1) {Domain.mustBeDomain} = circleDomain()
                 metric (1,1) {Metric.mustBeMetric} = euclidMetric()
+                args.stepType (1,:) {mustBeText} = 'EE'
+                args.stepSize (1,1) {mustBeNumeric} = 0.01
+                args.geoDur (1,1) {mustBeNumeric} = 100
             end
+            
+            obj.stepType = args.stepType;
+            obj.stepSize = args.stepSize;
+            obj.geoDur = args.geoDur;
             
             obj.domain = domain;
             obj.metric = metric;
@@ -27,10 +38,10 @@ classdef RiemannSurface
         function [xO,yO,thO] = geodesic(obj,xI,yI,thI)
             dom = obj.domain;
             
-            minR2 = dom.getMinRadius.^2;
+            minR2 = dom.getMinRadius;
+            minR2 = minR2*minR2;
             
-            h = 0.01;
-            NMAX = floor(100/h);
+            NMAX = floor(obj.geoDur/obj.stepSize);
 
             % initialize (x,y,th)
 
@@ -41,23 +52,26 @@ classdef RiemannSurface
             thO = zeros(ngeo,NMAX); thO(:,1) = thI;
             
             t = 1;
-            insidepoints = dom.isInsideR2(xI,yI,minR2);
+           
+            insidepoints = ones(1,ngeo);%;dom.isInsideR2(xI,yI,minR2);
 
             while any(insidepoints) && (t ~= NMAX)
-                IPidx = find(insidepoints); % prolly can just update this list instead of re-generating it every time?
-                noIPidx = find(~insidepoints); % prolly dont need to call find twice
+                
+                IPidx = find(insidepoints); 
+                noIPidx = find(~insidepoints);
 
                 % move the inside points forward
                 [xO(IPidx,t+1), yO(IPidx,t+1), thO(IPidx,t+1)] =  ...
                     obj.geoStep(xO(IPidx,t), yO(IPidx,t), thO(IPidx,t));
 
+                insidepoints(IPidx) = dom.isInsideR2(xO(IPidx, t),yO(IPidx, t),minR2);
+                
                 % keep everything fixed for points that reached the boundary
-                xO(noIPidx, t+1) = xO(noIPidx, t); % this is a lot of the process
+                xO(noIPidx, t+1) = xO(noIPidx, t);
                 yO(noIPidx, t+1) = yO(noIPidx, t);
                 thO(noIPidx, t+1) = thO(noIPidx, t);
 
-                % update inside points and march time forward
-                insidepoints(IPidx) = dom.isInside(xO(IPidx, t+1),yO(IPidx, t+1),minR2); 
+                % march time forward
                 t = t+1;    
 
                 % debug visualisation
@@ -77,13 +91,7 @@ classdef RiemannSurface
         end    
         
         
-        
-        
-        
-        
-        
-        
-        
+              
         
         
         function plotGeo(obj, X,Y,Th)       
@@ -207,19 +215,105 @@ classdef RiemannSurface
         
     end
     
+    
+    
+    
+    
+    
     methods (Access = 'protected')
+      
         function [xO,yO,thO] = geoStep(obj,xI,yI,thI)
-            h = 0.01;
-            
+            h = obj.stepSize;
+            type = obj.stepType;
             met = obj.metric;
-        	[lg,dxlg,dylg] = met.metricVals(xI, yI);
-            cth = cos(thI); sth = sin(thI);
 
-            hh = exp(-0.5*lg)*h;
+            switch type
+                case 'EE' % Explicit Euler
+                    [lg,dxlg,dylg] = met.metricVals(xI, yI);
+                    cth = cos(thI); sth = sin(thI);
 
-            xO = xI + hh.*cth;
-            yO = yI + hh.*sth;
-            thO = thI + .5*hh.*(cth.*dylg - sth.*dxlg);
+                    hh = exp(-0.5*lg)*h;
+
+                    xO = xI + hh.*cth;
+                    yO = yI + hh.*sth;
+                    thO = thI + .5*hh.*(cth.*dylg - sth.*dxlg);
+                case 'IE' % Improved Euler
+                    % predictor
+                    [lg,dxlg,dylg] = met.metricVals(xI, yI);
+                    cth = cos(thI); sth = sin(thI);
+
+                    k1x = exp(-.5*lg).*cth;
+                    k1y = exp(-.5*lg).*sth;
+                    k1th = .5*exp(-.5*lg).*(cth.*dylg - sth.*dxlg);
+
+                    xO = xI + h * k1x;
+                    yO = yI + h * k1y;
+                    thO = thI + h * k1th;
+
+                    % corrector
+                    [lg,dxlg,dylg] = met.metricVals(xO, yO);
+                    cth = cos(thO); sth = sin(thO);
+
+                    k2x = exp(-.5*lg).*cth;
+                    k2y = exp(-.5*lg).*sth;
+                    k2th = .5*exp(-.5*lg).*(cth.*dylg - sth.*dxlg);
+
+                    xO = xI + h * (k1x + k2x)/2;
+                    yO = yI + h * (k1y + k2y)/2;
+                    thO = thI + h * (k1th + k2th)/2;
+
+                case 'RK4' % Runge-Kutta 4
+
+                    % first slope
+                    [lg,dxlg,dylg] = met.metricVals(xI, yI);
+                    cth = cos(thI); sth = sin(thI);
+
+                    k1x = exp(-.5*lg).*cth;
+                    k1y = exp(-.5*lg).*sth;
+                    k1th = .5*exp(-.5*lg).*(cth.*dylg - sth.*dxlg);
+
+                    xO = xI + h/2 * k1x;
+                    yO = yI + h/2 * k1y;
+                    thO = thI + h/2 * k1th;
+
+                    % second slope
+                    [lg,dxlg,dylg] = met.metricVals(xO, yO);
+                    cth = cos(thO); sth = sin(thO);
+
+                    k2x = exp(-.5*lg).*cth;
+                    k2y = exp(-.5*lg).*sth;
+                    k2th = .5*exp(-.5*lg).*(cth.*dylg - sth.*dxlg);
+
+                    xO = xI + h/2 * k2x;
+                    yO = yI + h/2 * k2y;
+                    thO = thI + h/2 * k2th;
+
+                    % third slope
+                    [lg,dxlg,dylg] = met.metricVals(xO, yO);
+                    cth = cos(thO); sth = sin(thO);
+
+                    k3x = exp(-.5*lg).*cth;
+                    k3y = exp(-.5*lg).*sth;
+                    k3th = .5*exp(-.5*lg).*(cth.*dylg - sth.*dxlg);
+
+                    xO = xI + h * k3x;
+                    yO = yI + h * k3y;
+                    thO = thI + h * k3th;
+
+                    % fourth slope
+                    [lg,dxlg,dylg] = met.metricVals(xO, yO);
+                    cth = cos(thO); sth = sin(thO);
+
+                    k4x = exp(-.5*lg).*cth;
+                    k4y = exp(-.5*lg).*sth;
+                    k4th = .5*exp(-.5*lg).*(cth.*dylg - sth.*dxlg);
+
+                    xO = xI + h/6 * (k1x + 2*k2x + 2*k3x + k4x);
+                    yO = yI + h/6 * (k1y + 2*k2y + 2*k3y + k4y);
+                    thO = thI + h/6 * (k1th + 2*k2th + 2*k3th + k4th);        
+                otherwise 
+                    error('wrong timestepper')
+            end
         end    
     end    
 end
