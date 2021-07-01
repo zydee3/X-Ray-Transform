@@ -56,16 +56,14 @@ classdef RiemannSurface
             insidepoints = ones(1,ngeo);%;dom.isInsideR2(xI,yI,minR2);
 
             while any(insidepoints) && (t ~= NMAX)
-                
+
                 IPidx = find(insidepoints); 
                 noIPidx = find(~insidepoints);
 
                 % move the inside points forward
                 [xO(IPidx,t+1), yO(IPidx,t+1), thO(IPidx,t+1)] =  ...
                     obj.geoStep(xO(IPidx,t), yO(IPidx,t), thO(IPidx,t));
-
-                insidepoints(IPidx) = dom.isInsideR2(xO(IPidx, t),yO(IPidx, t),minR2);
-                
+          
                 % keep everything fixed for points that reached the boundary
                 xO(noIPidx, t+1) = xO(noIPidx, t);
                 yO(noIPidx, t+1) = yO(noIPidx, t);
@@ -73,6 +71,7 @@ classdef RiemannSurface
 
                 % march time forward
                 t = t+1;    
+                insidepoints(IPidx) = dom.isInsideR2(xO(IPidx, t),yO(IPidx, t),minR2);
 
                 % debug visualisation
             %     clf    
@@ -82,10 +81,10 @@ classdef RiemannSurface
 
             end
             
-            xO = xO(:, 1:t-1); yO = yO(:, 1:t-1); 
-            thO = thO(:, 1:t-1); 
+            xO = xO(:, 1:t); yO = yO(:, 1:t); 
+            thO = thO(:, 1:t); 
             
-            xO = xO';
+            xO = xO'; % transpose to agree with plotting function, should probably change down the line
             yO = yO';
             thO = thO';
         end    

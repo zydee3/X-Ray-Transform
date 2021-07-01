@@ -54,7 +54,7 @@
 %% Methods universally available to RiemannSurfaces
 % obj.plot                      -- plots domain.plotAlNormal over metric.plot
 % obj.plotGeo                   -- plots geodesics directly according to the geodesic method
-% obj.plotGeoFan                -- plots a geodesic fan on the boundry given a beta (currently sometimes bugged?)
+% obj.plotGeoFan                -- plots a geodesic fan on the boundry given a beta
 % obj.plotGeoRadiate            -- plots a family of geodesics that intersect a point
 % obj.plotGeoParallels          -- plots a family of parallel geodesics
 % obj.plotGeoCircle             -- plots a family of geodesics that lie on a circle
@@ -114,5 +114,7 @@ figure, dcos2.plot
 surf = RiemannSurface(dcos1, ms1);
 surf.plot; hold on
 % Then, use plot function or something
-surf.plotGeoParallels(2,2,4);
-%surf.plotGeoFan(1);
+%surf.plotGeoParallels(2,2,4);
+surf.plotGeoFan(2);
+
+% RiemannSurface variables are changed with surf.variableName
