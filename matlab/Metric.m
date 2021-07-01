@@ -59,7 +59,7 @@ classdef Metric
                 error("The sizes of X,Y do not agree.")
             end
 
-            warning("Method is slow, consider implementing a faster override of metricVals or use a subclass of Metric.")
+            %warning("Method is slow, consider implementing a faster override of metricVals or use a subclass of Metric.")
             
             [nr,nc] = size(X);
 
@@ -85,7 +85,7 @@ classdef Metric
                 error("The sizes of X,Y do not agree.")
             end
 
-            warning("Method is slow, consider implementing a faster override of metricVals or use a subclass of Metric.")
+            %warning("Method is slow, consider implementing a faster override of metricVals or use a subclass of Metric.")
             
             [nr,nc] = size(X);
 
@@ -109,9 +109,12 @@ classdef Metric
             elseif (nargin ~= 1), warning("Incorrect input arguments, plotting over generic domain.");
             end
             
-            Z = exp(metricVals(obj,X0,Y0)/2); 
-            Z = clamp(-7,Z,7); % clamp output % !! TODO make a parameter for this !!
-            out = contour(X0,Y0,Z);
+            Z = exp(metricVals(obj,X0,Y0)*0.5); 
+            m = mean(Z(1:5:end));
+            s = sqrt(std(Z(1:5:end))); % TODO should implement percentiles or something
+            
+            Z = clamp(m-s,Z,m+s); % clamp output % !! TODO make a parameter for this !!
+            out = contour(X0,Y0,Z,20);
         end
         
         

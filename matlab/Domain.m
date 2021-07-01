@@ -54,7 +54,7 @@ classdef Domain
         end 
         
         
-        function out = alNorm(obj, th)
+        function out = alNormal(obj, th)
             th = th - obj.theta;
             out = 0.5*pi - atan2(obj.bdr(th).*cos(th) + obj.dbdr(th).*sin(th),...
                         (obj.bdr(th).*sin(th) - obj.dbdr(th).*cos(th))); 
@@ -62,7 +62,7 @@ classdef Domain
         
         
         function [minB,maxB] = getBoundingBox(obj) 
-            %warning('Method "updateMinMax" is slow, consider overriding.'); % consider implementing a faster numerical update to this method, something with newtons itter could work
+            %warning('Method "getBoundingBox" is slow, consider overriding.'); % consider implementing a faster numerical update to this method, something with newtons itter could work
             rSamples = obj.bdr(linspace(0,2*pi, 1000) - obj.theta);
             eSamples = cos(linspace(0,2*pi, 1000)).* rSamples;
             minB = [min(eSamples),0];
@@ -70,15 +70,42 @@ classdef Domain
             eSamples = sin(linspace(0,2*pi, 1000)).* rSamples;
             minB(2) = min(eSamples);
             maxB(2) = max(eSamples);
-        end   
+        end 
+        
+        
+        function minR = getMinRadius(obj) 
+            %warning('Method "getMinRadius" is slow, consider overriding.'); % see comment for getBoundingBox
+            minR = min(obj.bdr(linspace(0,2*pi, 1000)));
+        end 
               
         
-        
-        function bool = isInside(obj, X, Y)
+        function bool = isInside(obj, X, Y, ~)
+            %%{
             X = X - obj.originX;
             Y = Y - obj.originY;
-            bool = sqrt(X.*X + Y.*Y) <= obj.bdr(atan2(Y,X) - obj.theta);            
-        end    
+            r = obj.bdr(atan2(Y,X) - obj.theta);
+            bool = (X).*(X) + (Y).*(Y) <= r.*r;            
+            %}
+            %{
+            x = obj.originX;
+            y = obj.originY;
+            bool = (X-x).*(X-x) + (Y-y).*(Y-y) <= obj.bdr(atan2(Y-y,X-x) - obj.theta).^2;            
+            %}
+        end  
+        
+        
+        function bool = isInsideR2(obj, X, Y, r)
+            X = X- obj.originX;
+            Y = Y - obj.originY;
+            XY2 = X.*X + Y.*Y;
+            bool = XY2 <= r;
+            
+            if (any(~bool))
+                i = find(~bool);
+                r = obj.bdr(atan2(Y(i),X(i)) - obj.theta);
+                bool(i) = XY2(i) <= r.*r;
+            end
+        end
         
     
         
@@ -104,8 +131,8 @@ classdef Domain
         function out = plot(obj) % !! TODO: make nicer lool!!
             %plot Displays boundry
             
-            n = 200;
-            th = 2*pi*(1:n+1)/n;
+            n = 500;
+            th = linspace(0,2*pi,n);
             th0 = obj.theta;
             x0 = obj.originX;
             y0 = obj.originY;
@@ -132,7 +159,7 @@ classdef Domain
             out = plot(obj.originX,obj.originY,'b*');
         end
         
-        function out = plotAlNorm(obj) % !! TODO: make nicer lool!!
+        function out = plotAlNormal(obj) % !! TODO: make nicer lool!!
             %plot Plots with alNorm
             
             holdBool = ishold;
@@ -144,11 +171,11 @@ classdef Domain
             x0 = obj.originX;
             y0 = obj.originY;
             r = obj.bdr(th - th0);
-            an = obj.alNorm(th) + th0;
+            an = obj.alNormal(th) + th0;
             pointX = cos(th) .* r + x0;
             pointY = sin(th) .* r + y0;
             [minB,maxB] = obj.getBoundingBox();
-            als = 0.05*max(abs([minB,maxB]));
+            als = 0.012*sum(abs(maxB-minB));
                         
             plot([pointX; pointX + als*cos(an)],...
                  [pointY; pointY + als*sin(an)],...
@@ -184,7 +211,7 @@ classdef Domain
             
             %obj.plotIsInsideTest();
             obj.plotAABB();
-            obj.plotAlNorm();
+            obj.plotAlNormal();
             obj.plotOrigin();
             
             if (~holdBool), hold off; end;
@@ -248,8 +275,7 @@ classdef Domain
             isANumber = @(in) isnumeric(in);
             isA2Vector = @(in) isnumeric(in) && all(size(in) == [1,2]);
             isA1Handle = @(in) isa(in,'function_handle') && nargin(in) == 1;
-
-            addOptional(p,'type','default',isAString);
+           addOptional(p,'type','default',isAString);
 
             addParameter(p,'theta',obj.theta,isANumber);
             addParameter(p,'origin',[obj.originX,obj.originY],isA2Vector);

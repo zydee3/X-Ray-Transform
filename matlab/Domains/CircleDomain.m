@@ -34,6 +34,10 @@ classdef circleDomain < Domain
             minB = -maxB;
         end  
         
+        function minR = getMinRadius(obj) 
+            minR = obj.radius;
+        end 
+        
     end    
     
 end

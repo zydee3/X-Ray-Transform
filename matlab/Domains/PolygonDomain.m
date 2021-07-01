@@ -44,7 +44,12 @@ classdef polygonDomain < Domain
                     cos(mod(th0+pi/2-pion, 2*pion) - pion)];
             minB = r*[cos(mod(th0+pion+pi, 2*pion) - pion - pi),...
                     cos(mod(th0-pion-pi/2, 2*pion) - pion-pi)];
-        end  
+        end
+        
+        
+        function minR = getMinRadius(obj) 
+            minR = cos(pi/obj.sides) * obj.radius;
+        end
     end    
     
 end

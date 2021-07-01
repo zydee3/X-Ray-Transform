@@ -15,7 +15,7 @@ m0 = Metric.build();
 
 me0 = Metric.build('euclid');
 mh0 = Metric.build('hyperbolic', 'radius', 4);
-mp0 = Metric.build('polynomial', 'coeffs', [0.2,0.43,5,2,-1,1]);
+mp0 = Metric.build('polynomial', 'coeffs', [0.5,0.43,-0.5,1,-1,5000]);
 ms0 = Metric.build('sphere', 'radius', 4);
 examp0 = Metric.build('myexample1');
 
@@ -27,4 +27,4 @@ examp0 = Metric.build('myexample1');
 
 %% RiemannSuface
 rs0 = RiemannSurface();
-rs1 = RiemannSurface(dcs0,examp0);
+rs1 = RiemannSurface(dcs0,mh0);

@@ -33,6 +33,10 @@ classdef cosineDomain < Domain
             c = obj.cycles;
             out = -c*c * obj.amplitude * cos(c*th);
         end
+        
+        function minR = getMinRadius(obj) 
+            minR = obj.radius - obj.amplitude;
+        end
     end    
     
 end

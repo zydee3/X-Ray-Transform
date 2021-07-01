@@ -51,6 +51,10 @@ classdef ellipseDomain < Domain
             maxB(2) = abs(obj.bdr(yTh-th0)*sin(yTh));
             minB = -maxB;
         end 
+        
+        function minR = getMinRadius(obj) 
+            minR = min(obj.radiusA, obj.radiusB);
+        end
     end    
     
 end

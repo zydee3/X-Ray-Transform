@@ -36,11 +36,11 @@ classdef hyperbolicMetric < Metric
         
         function [lgt,dxlgt,dylgt] = metricVals(obj, X, Y)
             R2 = obj.radius*obj.radius;
-            s = (R2 - (X.*X + Y.*Y));
+            %s = (R2 - (X.*X + Y.*Y));
             
-            lgt = log((4*R2*R2) ./ (s.*s));
-            dxlgt = 4.*X./s;
-            dylgt = 4.*Y./s;
+            lgt = log((4*R2*R2) ./ ((R2 - (X.*X + Y.*Y)).*(R2 - (X.*X + Y.*Y))));
+            dxlgt = 4.*X./(R2 - (X.*X + Y.*Y));
+            dylgt = 4.*Y./(R2 - (X.*X + Y.*Y));
         end
         
         

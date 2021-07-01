@@ -55,6 +55,11 @@ classdef smoothpolyDomain < Domain
 
         end
         %}
+        
+        function minR = getMinRadius(obj) 
+            minR = cos(pi/obj.sides) * obj.radius;
+        end
+        
     end    
     
 end

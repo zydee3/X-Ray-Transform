@@ -21,9 +21,13 @@ classdef RiemannSurface
         end
         
         
+        
+        
+        
         function [xO,yO,thO] = geodesic(obj,xI,yI,thI)
-            met = obj.metric;
             dom = obj.domain;
+            
+            minR2 = dom.getMinRadius.^2;
             
             h = 0.01;
             NMAX = floor(100/h);
@@ -37,23 +41,23 @@ classdef RiemannSurface
             thO = zeros(ngeo,NMAX); thO(:,1) = thI;
             
             t = 1;
-            insidepoints = dom.isInside(xI,yI);
+            insidepoints = dom.isInsideR2(xI,yI,minR2);
 
-            while any(insidepoints) && (t < NMAX)
-                IPidx = find(insidepoints);
-                noIPidx = find(~insidepoints);
+            while any(insidepoints) && (t ~= NMAX)
+                IPidx = find(insidepoints); % prolly can just update this list instead of re-generating it every time?
+                noIPidx = find(~insidepoints); % prolly dont need to call find twice
 
                 % move the inside points forward
                 [xO(IPidx,t+1), yO(IPidx,t+1), thO(IPidx,t+1)] =  ...
                     obj.geoStep(xO(IPidx,t), yO(IPidx,t), thO(IPidx,t));
 
                 % keep everything fixed for points that reached the boundary
-                xO(noIPidx, t+1) = xO(noIPidx, t);
+                xO(noIPidx, t+1) = xO(noIPidx, t); % this is a lot of the process
                 yO(noIPidx, t+1) = yO(noIPidx, t);
                 thO(noIPidx, t+1) = thO(noIPidx, t);
 
                 % update inside points and march time forward
-                insidepoints(IPidx) = dom.isInside(xO(IPidx, t+1),yO(IPidx, t+1));
+                insidepoints(IPidx) = dom.isInside(xO(IPidx, t+1),yO(IPidx, t+1),minR2); 
                 t = t+1;    
 
                 % debug visualisation
@@ -72,46 +76,105 @@ classdef RiemannSurface
             thO = thO';
         end    
         
-        function plotGeoRadiate(obj, x,y)
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        function plotGeo(obj, X,Y,Th)       
+            [xO,yO,~] = obj.geodesic(X,Y,Th);
+            
+            plot(xO,yO,'r')
+        end  
+        
+        
+        function plotGeoFan(obj, beta)
+            
+            dom = obj.domain;
+            ra = dom.bdr(beta - dom.theta);
+            x = cos(beta) * ra + dom.originX;
+            y = sin(beta) * ra + dom.originY;
+            
+            plot(x,y,'r*')
+            
             holdBool = ishold;
             hold on;
-            obj.plot()
             
-            
-            thI = linspace(0,2*pi, 80);
+            thI = linspace(0.5*pi, 1.5*pi, 40) + dom.alNormal(beta) + dom.theta;
             xI = ones(size(thI)) * x;
             yI = ones(size(thI)) * y;
             
-            [xO,yO,~] = obj.geodesic(xI,yI,thI);
-            plot(xO,yO,'r')
+            obj.plotGeo(xI,yI,thI);            
+            
+            if (~holdBool), hold off; end
+        end  
+        
+        
+        function plotGeoRadiate(obj, x,y)
             plot(x,y,'r*')
+            holdBool = ishold;
+            hold on;
+            
+            thI = linspace(0,2*pi, 81);
+            xI = ones(size(thI)) * x;
+            yI = ones(size(thI)) * y;
+            
+            inside = find(obj.domain.isInside(xI,yI));
+            xI = xI(inside); yI = yI(inside); thI = thI(inside);
+            
+            obj.plotGeo(xI,yI,thI);            
             
             if (~holdBool), hold off; end;
         end    
         
         
         function plotGeoParallels(obj, x,y,th)
+            
+            plot(x,y,'r*')
             holdBool = ishold;
             hold on;
-            obj.plot()
             
-            
-            off = linspace(-4,4, 80);
+            off = linspace(-4,4, 81);
             xI = -sin(th) * off + x;
             yI = cos(th) * off + y;
             thI = ones(size(off)) * th;
             
-            [xO,yO,~] = obj.geodesic(xI,yI,thI);
-            plot(xO,yO,'r')
+            inside = find(obj.domain.isInside(xI,yI));
+            xI = xI(inside); yI = yI(inside); thI = thI(inside);
+
+            obj.plotGeo(xI,yI,thI);           
+            plot(xI,yI,'r.','MarkerSize',5)
+            
+            if (~holdBool), hold off; end;
+        end  
+        
+        
+        function plotGeoCircle(obj, x,y,r,th)
             plot(x,y,'r*')
-            plot(xI,yI,'r*','MarkerSize',1)
+            holdBool = ishold;
+            hold on;
+            
+            
+            off = linspace(0,2*pi, 81);
+            xI = sin(off) * r + x;
+            yI = cos(off) * r + y;
+            thI = pi*0.5 -off + th;
+            
+            inside = find(obj.domain.isInside(xI,yI));
+            xI = xI(inside); yI = yI(inside); thI = thI(inside);
+          
+            obj.plotGeo(xI,yI,thI);
+            plot(xI,yI,'r.','MarkerSize',5)
             
             if (~holdBool), hold off; end;
         end  
         
         function plot(obj) % make nicer?
-            holdBool = ishold;
-            hold on;
             
             dom = obj.domain;
             [minB,maxB] = dom.getBoundingBox();
@@ -122,8 +185,12 @@ classdef RiemannSurface
             
             met = obj.metric;
             
-            met.plot((minB(1):psizeX:maxB(1)) + x0, (minB(2):psizeY:maxB(2)) + y0);
-            dom.plotAlNorm();
+            met.plot((minB(1):psizeX:maxB(1)) + x0, (minB(2):psizeY:maxB(2)) + y0);      
+            
+            holdBool = ishold;
+            hold on;
+            
+            dom.plotAlNormal();
             
             %consider removing this
                 axis equal
@@ -135,6 +202,7 @@ classdef RiemannSurface
             
             if (~holdBool), hold off; end;
         end
+        
         
         
     end

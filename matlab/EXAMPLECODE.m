@@ -1,5 +1,67 @@
-%(Domain and metric are coded in basically the same way)
+% To generate many generic cases, run the script "GenerateCases.m"
+
+
+%% Metric
+%% Methods universally available to Metrics
+% obj.plot                    -- plots exp(lg/2) onto an available figure
+% obj.plotALL                 -- plots lg,dxlg,dylg,curv onto a new figure (intended for debugging)
+
+% obj.lg,dxlg,dylg,curv (x,y) -- metric function, derivatives
+% obj.getHandles              -- returns function handles of lg,dxlg,dylg,curv
+% obj.metricVals        (X,Y) -- computes lg,dxlg,dylg over some inputs
+% obj.metricValsCurv    (X,Y) -- computes lg,dxlg,dylg,curv over some inputs
+
+%% Static Metric Methods
+% Metric.mustBeMetric(obj)    -- errors if the obj is not a metric
+% Metric.build('type',params) -- constucts a sublcass with parameters
+
+
+%% Domain
+%% Properties universally available to Domains
+% originX,originY,theta           -- transforms domain
+%% Methods universally available to Domains
+% obj.plot                        -- plots bdr onto an available figure
+% obj.plotAABB                    -- plots axis aligned bounding box as given by getBoundingBox (intended for debugging)
+% obj.plotOrigin                  -- plots a dot at originX, originY (intended for debugging)
+% obj.plotAlNormal                -- plots bdr with outer normals
+% obj.plotALL                     -- runs plotAABB, plotOrigin, plotAlNormal (intended for debugging)
+
+% obj.isInside                    -- tests if a point is inside the domain
+% obj.isInsideR2                  -- slightly optimized version of the above method (first tests if a point is within the minimum of bdr)
+
+% obj.bdr,dbdr,ddbdr(th)          -- boundry function, derivatives
+% obj.alNormal                    -- returns angle representing the angle of outer normal against the x axis
+% obj.getHandles                  -- returns function handles of lg,dxlg,dylg,curv
+% obj.getBoundingBox              -- returns vector extents the axis oriented bounding box of the domain [minB,maxB] 
+% obj.getMinRadius                -- returns the minimum value of bdr
+% obj.transform                   -- helper method to set values of originX,originY,theta
+
+%% Static Domains Methods
+% Domain.mustBeDomain(obj)    -- errors if the obj is not a metric
+% Domain.build('type',params) -- constucts a sublcass with parameters
+
+
+%% RiemannSurface
+%% Properties universally available to RiemannSurfaces
+% domain                        -- domain, defaults to a generic circleDomain
+% metric                        -- metric, defaults to a euclidMetric
+%% Methods universally available to RiemannSurfaces
+% obj.plot                      -- plots domain.plotAlNormal over metric.plot
+% obj.plot 
+%
+
+%% Static Domains Methods
+% 
+
+
+
+
+
+
+
 %% To construct a sphere metric:
+%(Domain and metric are coded in basically the same way)
+
 R = 7;
 
 ms0 = sphereMetric;
@@ -32,30 +94,4 @@ figure, dcos0.plot
 figure, dcos1.plot
 figure, dcos2.plot
 
-
-
-%% Methods universally available to Metrics
-% obj.plot                    -- plots exp(lg/2) onto an available figure
-% obj.plotALL                 -- plots lg,dxlg,dylg,curv onto a new figure (intended for debugging)
-% obj.lg,dxlg,dylg,curv (x,y) -- is what it is
-% obj.getHandles              -- returns function handles of lg,dxlg,dylg,curv
-% obj.metricVals        (X,Y) -- computes lg,dxlg,dylg over some inputs
-% obj.metricValsCurv    (X,Y) -- computes lg,dxlg,dylg,curv over some inputs
-
-%% Static Metric Methods
-% Metric.mustBeMetric(obj)    -- errors if the obj is not a metric
-% Metric.build('type',params) -- constucts a sublcass with parameters
-
-
-%% Properties universally available to Domains
-% originX,originY,theta          -- transforms domain
-%% Methods universally available to Domains
-% obj.plot                       -- plots bdr onto an available figure
-% obj.bdr,dbdr,ddbdr,alNorm (th) -- is what it is
-% obj.getHandles                 -- returns function handles of lg,dxlg,dylg,curv
-% obj.transform                  -- method to set values of originX,originY,theta
-
-%% Static Metric Domains
-% Domain.mustBeDomain(obj)    -- errors if the obj is not a metric
-% Domain.build('type',params) -- constucts a sublcass with parameters
 
