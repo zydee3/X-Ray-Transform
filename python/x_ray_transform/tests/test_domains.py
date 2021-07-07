@@ -1,20 +1,26 @@
-from x_ray_transform import Circle, Cosine, Ellipse
-from timeit import default_timer as timer
-
-default_time_message = "Total Time Elapsed"
-
-
-def print_time(message=default_time_message, time=0):
-    print(message + ': {0:.4g} Seconds'.format(time))
+from x_ray_transform import Domain
+from x_ray_transform.meta import time_computation
+from numpy import array, random, power, copy, zeros
+from numba import njit
 
 
-def unit_test_domains(domain):
-    pass
+type_circle = 0
+type_cosine = 1
+type_ellipse = 2
 
 
+@njit(fastmath=True, parallel=True, nogil=True)
+def test_ellipse(bound=10, num_elements=100000):
+    theta_offset = random.randint(bound)
+    minor_radius = random.randint(bound)
+    major_radius = random.randint(bound)
+    theta = random.uniform(1, bound, num_elements)
+    domain = Domain(type_ellipse)
+    time_computation(domain, theta, False, "Ellipse")
+
+
+@njit(fastmath=True, nogil=True)
 def test_domains():
-    start = timer()
-    circle = Circle(radius=2)
-    cosine = Cosine(radius=2, amplitude=1, cycles=1)
-    ellipse = Ellipse(minor_radius=1, major_radius=2, theta_offset=3)
-    print_time(time=timer() - start)
+    num_elements_override = 100000
+
+    test_ellipse(num_elements=num_elements_override)

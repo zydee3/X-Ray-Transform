@@ -1,35 +1,20 @@
-import time
+from x_ray_transform import Metric
+from x_ray_transform.meta import time_computation
 
-from x_ray_transform import Euclidean, Gaussian, Hyperbolic, Polynomial, Sphere, print_time
-
-from timeit import default_timer as timer
 from numpy import array, random, power, copy, zeros
 from numba import njit, objmode
 
-
-@njit(fastmath=True, nogil=True)
-def time_computation(metric, x_values, y_values):
-    with objmode(start='f8'):
-        start = time.perf_counter()
-
-    metric.compute_values(x_values, y_values)
-
-    with objmode():
-        end = time.perf_counter()
-        num_spaces = 3
-        length_name = len(metric.__class__.__name__)
-        num_tabs = num_spaces - (length_name - (length_name % 4))/4
-        tabs = ""
-        for i in range(int(num_tabs)):
-            tabs += '\t'
-
-        print('Time Elapsed ({}):{} {}'.format(metric.__class__.__name__, tabs, end - start))
+type_euclidean = 0
+type_gaussian = 1
+type_hyperbolic = 2
+type_polynomial = 3
+type_sphere = 4
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
 def test_euclidean(num_elements=100000):
-    metric = Euclidean()
-    time_computation(metric, zeros(num_elements), zeros(num_elements))
+    metric = Metric(type_euclidean)
+    time_computation(entity_name="Euclidean", entity=metric, arg1=zeros(num_elements), arg2=zeros(num_elements))
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
@@ -40,34 +25,41 @@ def test_gaussian(bound=2, num_elements=100000):
     weights = random.uniform(1, bound, num_elements)
     center_x = random.uniform(1, bound, num_elements)
     center_y = random.uniform(1, bound, num_elements)
-    metric = Gaussian(widths, weights, center_x, center_y)
-    time_computation(metric, x_values, y_values)
+    metric = Metric(type_gaussian)
+    metric.set_bumps(widths, weights, center_x, center_y)
+    time_computation(entity_name="Gaussian", entity=metric, arg1=x_values, arg2=y_values)
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
 def test_hyperbolic(radius=2, bound=1000, num_elements=100000):
     x_values = random.uniform(1, bound, num_elements)
     y_values = random.uniform(1, bound, num_elements)
-    metric = Hyperbolic(radius)
-    time_computation(metric, x_values, y_values)
+    metric = Metric(type_hyperbolic)
+    metric.set_radius(radius)
+    time_computation(entity_name="Hyperbolic", entity=metric, arg1=x_values, arg2=y_values)
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
 def test_sphere(radius=2, bound=1000, num_elements=100000):
     x_values = random.uniform(1, bound, num_elements)
     y_values = random.uniform(1, bound, num_elements)
-    metric = Sphere(radius)
-    time_computation(metric, x_values, y_values)
+    metric = Metric(type_sphere)
+    metric.set_radius(radius)
+    time_computation(entity_name="Sphere", entity=metric, arg1=x_values, arg2=y_values)
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
 def test_polynomial(coefficients=array([0.0, 0.0, 0.0, 0.0, 0.0, 1.0]), bound=1000, num_elements=100000):
     x_values = random.uniform(1, bound, num_elements)
     y_values = random.uniform(1, bound, num_elements)
-    metric = Polynomial(coefficients)
-    time_computation(metric, x_values, y_values)
+
+    metric = Metric(type_polynomial)
+    metric.set_coefficients(coefficients)
+
+    time_computation(metric, x_values, y_values, "Polynomial")
 
 
+@njit(fastmath=True, nogil=True)
 def test_metrics():
     num_elements_override = 100000                          # 100,000 elements
 

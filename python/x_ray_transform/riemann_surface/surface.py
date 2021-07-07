@@ -2,6 +2,7 @@ from numba.experimental import jitclass
 from numba import njit, types
 from enum import IntEnum
 
+
 members = [
     ('domain_id', types.int32),
     ('metric_id', types.int32)
@@ -19,19 +20,8 @@ class Identifier(IntEnum):
     sphere_id = 7
 
 
-domain = None
-metric = None
-
-
 @jitclass(members)
 class Surface:
     def __init__(self):
         self.domain_id = -1
         self.metric_id = -1
-
-    def set_metric_as_euclidean(self, metric_euclidean):
-        global metric
-        metric = metric_euclidean
-        self.metric_id = Identifier.euclidean_id
-        print("set")
-
