@@ -1,4 +1,2 @@
 from x_ray_transform.tests import test_domains, test_metrics
-
-test_domains()
-
+print(314159265358979323846264338327 % 8)
