@@ -140,19 +140,38 @@ classdef RiemannSurface
         end    
         
         
-        function plotGeoParallels(obj, x,y,th)
+        function plotGeoParallels(obj, th)
             
             plot(x,y,'r*')
             holdBool = ishold;
             hold on;
             
-            off = linspace(-4,4, 81);
-            xI = -sin(th) * off + x;
-            yI = cos(th) * off + y;
-            thI = ones(size(off)) * th;
+            off = linspace(0,2*pi, 100);
+            dom = obj.domain;
+            ra = dom.bdr(off - dom.theta);
+            xI = cos(off) * ra + dom.originX;
+            yI = sin(off) * ra + dom.originY;
+
+            obj.plotGeo(xI,yI,th);           
+            plot(xI,yI,'r.','MarkerSize',5)
             
-            inside = find(obj.domain.isInside(xI,yI));
-            xI = xI(inside); yI = yI(inside); thI = thI(inside);
+            if (~holdBool), hold off; end;
+        end  
+        
+        
+        
+        function plotGeoNormals(obj, th)
+            
+            plot(x,y,'r*')
+            holdBool = ishold;
+            hold on;
+            
+            off = linspace(0,2*pi, 100);
+            dom = obj.domain;
+            ra = dom.bdr(off - dom.theta);
+            xI = cos(off) * ra + dom.originX;
+            yI = sin(off) * ra + dom.originY;
+            thI = off - dom.theta + th;
 
             obj.plotGeo(xI,yI,thI);           
             plot(xI,yI,'r.','MarkerSize',5)
@@ -161,25 +180,6 @@ classdef RiemannSurface
         end  
         
         
-        function plotGeoCircle(obj, x,y,r,th)
-            plot(x,y,'r*')
-            holdBool = ishold;
-            hold on;
-            
-            
-            off = linspace(0,2*pi, 81);
-            xI = sin(off) * r + x;
-            yI = cos(off) * r + y;
-            thI = pi*0.5 -off + th;
-            
-            inside = find(obj.domain.isInside(xI,yI));
-            xI = xI(inside); yI = yI(inside); thI = thI(inside);
-          
-            obj.plotGeo(xI,yI,thI);
-            plot(xI,yI,'r.','MarkerSize',5)
-            
-            if (~holdBool), hold off; end;
-        end  
         
         function plot(obj) % make nicer?
             
@@ -212,15 +212,6 @@ classdef RiemannSurface
         
         
         
-    end
-    
-    
-    
-    
-    
-    
-    methods (Access = 'protected')
-      
         function [xO,yO,thO] = geoStep(obj,xI,yI,thI)
             h = obj.stepSize;
             type = obj.stepType;
@@ -314,7 +305,11 @@ classdef RiemannSurface
                     error('wrong timestepper')
             end
         end    
-    end    
+        
+        
+    end
+    
+    
 end
 
 
