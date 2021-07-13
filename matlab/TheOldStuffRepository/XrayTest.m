@@ -1,14 +1,14 @@
 
 
-dom = circleDomain(radius=2);
-met = hyperbolicMetric(radius=5);
+dom = circleDomain(radius=1.5);
+met = hyperbolicMetric(radius=4);
 
 im = InMap([0,0,0,0,0;...
             0,0,-2,0,0;...
             0,0,0,1,0;...
             0,2,0,0,0;
             0,0,0,0,0;]);
-    im = im.transform(0,0,0.7,0.7,0);       
+    im = im.transform(0,0,0.7,0.7,0.3);       
     
 surf = RiemannSurface(dom,met, stepType='RK4', stepSize=0.01, geoDur=20);
 

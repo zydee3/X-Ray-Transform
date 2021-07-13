@@ -141,18 +141,19 @@ classdef RiemannSurface
         
         
         function plotGeoParallels(obj, th)
-            
-            plot(x,y,'r*')
-            holdBool = ishold;
-            hold on;
+           
             
             off = linspace(0,2*pi, 100);
             dom = obj.domain;
             ra = dom.bdr(off - dom.theta);
-            xI = cos(off) * ra + dom.originX;
-            yI = sin(off) * ra + dom.originY;
+            xI = cos(off) .* ra + dom.originX;
+            yI = sin(off) .* ra + dom.originY;
 
-            obj.plotGeo(xI,yI,th);           
+            obj.plotGeo(xI,yI,th);        
+            
+            holdBool = ishold;
+            hold on;
+            
             plot(xI,yI,'r.','MarkerSize',5)
             
             if (~holdBool), hold off; end;
@@ -173,7 +174,8 @@ classdef RiemannSurface
             yI = sin(off) * ra + dom.originY;
             thI = off - dom.theta + th;
 
-            obj.plotGeo(xI,yI,thI);           
+            obj.plotGeo(xI,yI,thI);    
+            
             plot(xI,yI,'r.','MarkerSize',5)
             
             if (~holdBool), hold off; end;
