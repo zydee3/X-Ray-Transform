@@ -95,7 +95,7 @@ classdef Domain
         
         
         function bool = isInsideR2(obj, X, Y, r)
-            X = X- obj.originX;
+            X = X - obj.originX;
             Y = Y - obj.originY;
             XY2 = X.*X + Y.*Y;
             bool = XY2 <= r;

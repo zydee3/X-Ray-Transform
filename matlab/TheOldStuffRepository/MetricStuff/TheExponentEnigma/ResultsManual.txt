@@ -1,0 +1,86 @@
+MethodA: 1) Run "InitializeTest"
+         2) Run "WithPower" X times
+         3) Run "WithTimes" X times
+
+
+
+Test: n=2, A=double(rand(1000)), 30 runs each, MethodA
+
+WithPower:  avgTime=0.002519626666667
+WithTimes:  avgTime=0.001418940000000
+
+
+Test: n=2, A=double(rand(1000))*100, 30 runs each, MethodA
+
+WithPower:  avgTime=0.002500276666667
+WithTimes:  avgTime=0.001388776666667
+
+
+Test: n=3, A=double(rand(1000)), 30 runs each, MethodA
+
+WithPower:  avgTime=0.036805500000000
+WithTimes:  avgTime=0.001734726666667
+
+Remark: wtf?
+
+
+
+MethodB: 1) Run "InitializeTest"
+         2) Run "WithPower" once, then "WithTimes" once
+         3) Repeat step 2 X times
+
+Test: n=3, A=double(rand(1000)), 30 runs each, MethodB
+
+WithPower:  avgTime=0.038052336666667
+WithTimes:  avgTime=0.001607260000000
+
+
+Test: n=3, A=double(rand(1000))*100, 30 runs each, MethodA
+
+WithPower:  avgTime=0.038326313333333
+WithTimes:  avgTime=0.001621710000000
+
+
+Test: n=3, A=double(rand(10)), 50 runs each, MethodA
+
+WithPower:  avgTime=4.704000000000002e-05
+WithTimes:  avgTime=5.652799999999998e-05
+
+
+Test: n=3, A=double(rand(100)), 50 runs each, MethodA
+
+WithPower:  avgTime=5.026659999999999e-04
+WithTimes:  avgTime=9.538200000000002e-05
+
+
+Test: n=4, A=double(rand(1000))*100, 50 runs each, MethodA
+
+WithPower:  avgTime=0.038383902000000
+WithTimes:  avgTime=0.001934154000000
+
+
+Test: n=5, A=double(rand(1000))*100, 50 runs each, MethodA
+
+WithPower:  avgTime=0.037436616000000
+WithTimes:  avgTime=0.002557754000000
+
+
+Test: n=7, A=double(rand(1000))*100, 50 runs each, MethodA
+
+WithPower:  avgTime=0.037419556666667
+WithTimes:  avgTime=0.003569410000000
+
+
+Test: Compute exp(7*log(A)), A=double(rand(1000))*100, 50 runs
+
+avgTime=0.014745536000000
+
+
+Test: n=2, A=double(rand(1000)), 30 runs each, MethodA (Again)
+
+WithPower:  avgTime=0.038944700000000
+WithTimes:  avgTime=0.003404563333333
+
+Remark: It seems my first two tests are flawed?
+        
+
