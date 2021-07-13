@@ -1,4 +1,4 @@
-from x_ray_transform import Metric
+from x_ray_transform.riemann_surface import Metric
 from x_ray_transform.meta import time_computation
 
 from numpy import array, random, power, copy, zeros
