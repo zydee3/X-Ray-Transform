@@ -1,7 +1,7 @@
 import numba
 from numpy import zeros, array, empty, power, square, log, full, e
 from numba.experimental import jitclass
-from numba import njit, types
+from numba import njit, types, deferred_type
 
 
 type_euclidean = 0
@@ -17,6 +17,8 @@ def parallel_compute_values_euclidean(num_elements, log_g_of_t, dx_log_g_of_t, d
     dx_log_g_of_t = zeros(num_elements)
     dy_log_g_of_t = zeros(num_elements)
     curvature = zeros(num_elements)
+
+    return log_g_of_t, dx_log_g_of_t, dy_log_g_of_t, curvature
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
@@ -42,14 +44,18 @@ def parallel_compute_values_gaussian(x_values, y_values, log_g_of_t, dx_log_g_of
         dy_log_g_of_t[index] = previous_dy - y_bar[index] / precompute
         curvature[index] = previous_curvature + (square(x_bar[index] + y_bar[index] - 2))
 
+    return log_g_of_t, dx_log_g_of_t, dy_log_g_of_t, curvature
+
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_values_hyperbolic(self, x_values, y_values):
-    difference_of_squares = self.radius_squared + square(x_values) + square(y_values)
-    self.log_g_of_t = log(square(self.radius_squared) * 4) - log(square(difference_of_squares))
-    self.dx_log_g_of_t = 4 * x_values / difference_of_squares
-    self.dy_log_g_of_t = 4 * y_values / difference_of_squares
-    self.curvature = full(x_values.size, (-1 / self.radius_squared))
+def parallel_compute_values_hyperbolic(radius_squared, x_values, y_values, log_g_of_t, dx_log_g_of_t, dy_log_g_of_t, curvature):
+    difference_of_squares = radius_squared - square(x_values) - square(y_values)
+    log_g_of_t = log(square(radius_squared) * 4) - log(square(difference_of_squares))
+    dx_log_g_of_t = 4 * x_values / difference_of_squares
+    dy_log_g_of_t = 4 * y_values / difference_of_squares
+    curvature = full(x_values.size, (-1 / radius_squared))
+
+    return log_g_of_t, dx_log_g_of_t, dy_log_g_of_t, curvature
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
@@ -62,18 +68,22 @@ def parallel_compute_values_polynomial(x_values, y_values, coefficients, log_g_o
     dy_log_g_of_t = (coefficients[1] * x_values) + (2 * coefficients[2] * y_values) + coefficients[4]
     curvature = -1 * power(e, log_g_of_t) * (coefficients[0] + coefficients[1])
 
+    return log_g_of_t, dx_log_g_of_t, dy_log_g_of_t, curvature
+
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_values_sphere(self, x_values, y_values):
-    sum_of_squares = self.radius_squared + square(x_values) + square(y_values)
-    self.log_g_of_t = log(square(self.radius_squared) * 4) - log(square(sum_of_squares))
-    self.dx_log_g_of_t = 4 * x_values / sum_of_squares
-    self.dy_log_g_of_t = 4 * y_values / sum_of_squares
-    self.curvature = full(x_values.size, (-1 / self.radius_squared))
+def parallel_compute_values_sphere(radius_squared, x_values, y_values, log_g_of_t, dx_log_g_of_t, dy_log_g_of_t, curvature):
+    sum_of_squares = radius_squared + square(x_values) + square(y_values)
+    log_g_of_t = log(square(radius_squared) * 4) - log(square(sum_of_squares))
+    dx_log_g_of_t = 4 * x_values / sum_of_squares
+    dy_log_g_of_t = 4 * y_values / sum_of_squares
+    curvature = full(x_values.size, (-1 / radius_squared))
+
+    return log_g_of_t, dx_log_g_of_t, dy_log_g_of_t, curvature
 
 
 members = [
-    ('metric_type', types.int32),
+    ('metric_type', types.int8),
     ('log_g_of_t', types.float64[:]),
     ('dx_log_g_of_t', types.float64[:]),
     ('dy_log_g_of_t', types.float64[:]),
@@ -118,16 +128,20 @@ class Metric:
         self.coefficients = coefficients
 
     def compute_values(self, x_values: array, y_values: array):
+        result = (zeros(0), zeros(0), zeros(0), zeros(0))
+
         if self.metric_type == type_euclidean:
-            parallel_compute_values_euclidean(x_values.size, self.log_g_of_t, self.dx_log_g_of_t, self.dy_log_g_of_t, self.curvature)
+            result = parallel_compute_values_euclidean(x_values.size, self.log_g_of_t, self.dx_log_g_of_t, self.dy_log_g_of_t, self.curvature)
         if self.metric_type == type_gaussian:
-            parallel_compute_values_gaussian(x_values, y_values, self.log_g_of_t, self.dx_log_g_of_t, self.dy_log_g_of_t, self.curvature, self.widths, self.weights, self.center_x, self.center_y)
+            result = parallel_compute_values_gaussian(x_values, y_values, self.log_g_of_t, self.dx_log_g_of_t, self.dy_log_g_of_t, self.curvature, self.widths, self.weights, self.center_x, self.center_y)
         if self.metric_type == type_hyperbolic:
-            parallel_compute_values_hyperbolic(self, x_values, y_values)
+            result = parallel_compute_values_hyperbolic(self.radius_squared, x_values, y_values, self.log_g_of_t, self.dx_log_g_of_t, self.dy_log_g_of_t, self.curvature)
         if self.metric_type == type_polynomial:
-            parallel_compute_values_polynomial(x_values, y_values, self.coefficients, self.log_g_of_t, self.dx_log_g_of_t, self.dy_log_g_of_t, self.curvature)
+            result = parallel_compute_values_polynomial(x_values, y_values, self.coefficients, self.log_g_of_t, self.dx_log_g_of_t, self.dy_log_g_of_t, self.curvature)
         if self.metric_type == type_sphere:
-            parallel_compute_values_sphere(self, x_values, y_values)
+            result = parallel_compute_values_sphere(self.radius_squared, x_values, y_values, self.log_g_of_t, self.dx_log_g_of_t, self.dy_log_g_of_t, self.curvature)
 
-
-
+        self.log_g_of_t = result[0]
+        self.dx_log_g_of_t = result[1]
+        self.dy_log_g_of_t = result[2]
+        self.curvature = result[3]

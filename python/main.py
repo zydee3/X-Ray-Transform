@@ -1,2 +1,6 @@
-from x_ray_transform.tests import test_domains, test_metrics
-print(314159265358979323846264338327 % 8)
+from x_ray_transform.tests import test_domains, test_surface, test_metrics
+
+# test_domains()
+# test_metrics()
+test_surface()
+

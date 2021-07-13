@@ -23,3 +23,15 @@ def time_computation(entity=None, arg1=None, arg2=None, entity_name=""):
             tabs += '\t'
 
         print('Time Elapsed ({} - {}):{} {}'.format("entity_type", entity_name, tabs, end - start))
+
+
+@njit(fastmath=True)
+def time_geo_step(surface, x_values, y_values, theta_values):
+    with objmode(start='f8'):
+        start = time.perf_counter()
+
+    surface.geo_step(x_values, y_values, theta_values)
+
+    with objmode():
+        end = time.perf_counter()
+        print('Time Elapsed (Surface - Domain: {}, Metric: {}): {}'.format(surface.domain, surface.metric, end - start))

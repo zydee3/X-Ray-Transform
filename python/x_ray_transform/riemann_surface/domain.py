@@ -18,9 +18,9 @@ def parallel_compute_alpha_normal(theta, boundary, dtheta_boundary):
 
 
 @njit(parallel=True, nogil=True)
-def parallel_compute_values_circle(self, theta, compute_alpha_normal):
+def parallel_compute_values_circle(radius, theta, compute_alpha_normal):
     boundary = empty(theta.size)
-    boundary.fill(self.radius)
+    boundary.fill(radius)
     if not compute_alpha_normal:
         return boundary, zeros(0)
 
@@ -28,35 +28,35 @@ def parallel_compute_values_circle(self, theta, compute_alpha_normal):
 
 
 @njit(parallel=True, nogil=True)
-def parallel_compute_values_cosine(self, theta, compute_alpha_normal):
-    ct = self.cycles * theta
+def parallel_compute_values_cosine(cycles, radius, amplitude, theta, compute_alpha_normal):
+    ct = cycles * theta
     cos_ct = cos(ct)
-    boundary = self.radius + self.amplitude * cos_ct
+    boundary = radius + amplitude * cos_ct
 
     if not compute_alpha_normal:
         return boundary, zeros(0)
 
-    dtheta_boundary = -1 * self.cycles * self.amplitude * sin(ct)
+    dtheta_boundary = -1 * cycles * amplitude * sin(ct)
     # ddtheta_boundary = -1 * square(cycles) * amplitude * cos_ct
 
     return boundary, parallel_compute_alpha_normal(theta, boundary, dtheta_boundary)
 
 
 @njit(fastmath=True, parallel=True)
-def parallel_compute_values_ellipse(self, theta, compute_alpha_normal):
+def parallel_compute_values_ellipse(minor_radius, major_radius, theta_offset, theta, compute_alpha_normal):
     # save redundant computations
-    mm = self.minor_radius * self.major_radius
+    mm = minor_radius * major_radius
 
     # computing boundary
-    delta_theta = theta - self.theta_offset
-    distance = sqrt(self.major_radius * square(cos(delta_theta)) + self.minor_radius * square(sin(delta_theta)))
+    delta_theta = theta - theta_offset
+    distance = sqrt(major_radius * square(cos(delta_theta)) + minor_radius * square(sin(delta_theta)))
     boundary = mm / distance
 
     if not compute_alpha_normal:
         return boundary, zeros(0)
 
     # computing dtheta and ddtheta boundary
-    dtheta_boundary = power(boundary, 3) * sin(2 * delta_theta) * (square(self.major_radius) - square(self.minor_radius ** 2)) / 2 / mm * mm
+    dtheta_boundary = power(boundary, 3) * sin(2 * delta_theta) * (square(major_radius) - square(minor_radius ** 2)) / 2 / mm * mm
     # ddtheta_boundary = square(3 * dtheta_boundary) / boundary + power(boundary, 3) * cos(2 * delta_theta) * (major_radius - minor_radius) / mm_squared
 
     return boundary, parallel_compute_alpha_normal(theta, boundary, dtheta_boundary)
@@ -70,7 +70,7 @@ def parallel_compute_values_ellipse(self, theta, compute_alpha_normal):
 
 @njit(fastmath=True, parallel=True, nogil=True)
 def get_bounding_box(theta_offset):
-    radius_samples = compute_values(linspace(0, pi * 2, 1000) - self.theta_offset)
+    radius_samples = compute_values(linspace(0, pi * 2, 1000) - theta_offset)
     euclidean_samples_x = cos(linspace(0, pi * 2, 1000)) * radius_samples
     euclidean_samples_y = sin(linspace(0, pi * 2, 1000)) * radius_samples
 
@@ -83,15 +83,15 @@ def get_bounding_box(theta_offset):
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def is_inside(self, x, y, min_radius_squared):
-    x_values = x - self.x_offset
-    y_values = y - self.y_offset
+def is_inside(x_offset, y_offset, theta_offset, compute_boundary, x, y, min_radius_squared):
+    x_values = x - x_offset
+    y_values = y - y_offset
     xy_squared = square(x_values) + square(y_values)
     inside_points = xy_squared <= min_radius_squared
 
     if not any(inside_points):
         outside_index = find(not inside_points)
-        radius = self.compute_boundary(arctan2(y_values(outside_index), x_values(outside_index)) - self.theta_offset)
+        radius = compute_boundary(arctan2(y_values(outside_index), x_values(outside_index)) - theta_offset)
         inside_points[outside_index] = xy_squared(outside_index) <= square(radius)
 
     return inside_points
@@ -101,7 +101,7 @@ def is_inside(self, x, y, min_radius_squared):
 
 
 members = [
-    ('domain_type', types.int32),
+    ('domain_type', types.int8),
     ('radius', types.double),
     ('amplitude', types.double),
     ('cycles', types.double),
@@ -109,7 +109,8 @@ members = [
     ('major_radius', types.double),
     ('theta_offset', types.double),
     ('x_offset', types.double),
-    ('y_offset', types.double)
+    ('y_offset', types.double),
+    ('origin', types.double)
 ]
 
 
@@ -125,17 +126,18 @@ class Domain:
         self.theta_offset = 0
         self.x_offset = 0
         self.y_offset = 0
+        self.origin = 0
 
     def compute_values(self, theta, compute_alpha_normal=False):
         if self.domain_type == type_circle:
-            return parallel_compute_values_circle(self, theta, compute_alpha_normal)
+            return parallel_compute_values_circle(self.radius, theta, compute_alpha_normal)
         if self.domain_type == type_cosine:
-            return parallel_compute_values_cosine(self, theta, compute_alpha_normal)
+            return parallel_compute_values_cosine(self.cycles, self.radius, self.amplitude, theta, compute_alpha_normal)
         if self.domain_type == type_ellipse:
-            return parallel_compute_values_ellipse(self, theta, compute_alpha_normal)
+            return parallel_compute_values_ellipse(self.minor_radius, self.major_radius, self.theta_offset, theta, compute_alpha_normal)
 
     def get_bounding_box(self):
         return get_bounding_box(self.theta_offset)
 
     def is_inside(self, x_values, y_values, min_radius_squared):
-        return is_inside(self, x_values, y_values, min_radius_squared)
+        return is_inside(self.x_offset, self.y_offset, self.theta_offset, self.compute_boundary, x_values, y_values, min_radius_squared)
