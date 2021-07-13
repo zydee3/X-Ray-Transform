@@ -1,0 +1,49 @@
+
+
+dom = cosineDomain();
+met = hyperbolicMetric(radius=5);
+
+vals = [0,0,0,0,0;...
+        0,0,-2,0,0;...
+        0,0,0,1,0;...
+        0,2,0,0,0;
+        0,0,0,0,0;];
+im = InMap(vals);
+    im = im.transform(0,0,0.7,0.7,0);       
+    
+surf = RiemannSurface(dom,met, stepType='RK4', stepSize=0.01, geoDur=10);
+
+
+B = linspace(0,2*pi,256);
+A = linspace(-pi,pi,256)*0.5;
+[beta,alpha] = meshgrid(B,A);
+
+tic
+    I0_1 = XrayI0(im,surf,beta,alpha);
+toc
+
+
+params.type = 'circle';
+params.a = 2;
+params.xOrig = 0;
+params.yOrig = 0;
+params.rmax = 2;
+th0 = params.th0 = 0;
+
+domain = build_boundary(params);
+metric = build_metric_negative(5);
+
+tic
+    I0_2 = geoI0(domain, vals, B, A, 0.01, metric, 'RK4');
+toc
+
+
+figure, hold on
+subplot(1,2,1);
+pl = pcolor(beta,alpha,I0_1);
+pl.EdgeColor = 'none';
+
+subplot(1,2,2);
+pl = pcolor(beta,alpha,I0_2);
+pl.EdgeColor = 'none';
+

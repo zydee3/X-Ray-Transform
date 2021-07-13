@@ -58,8 +58,8 @@ classdef InMap
                     v = obj.values;
                     s = size(v);
                     o = (s+1)*0.5;
-                    out = lininterp2(v, clamp(1, x + o(1), s(1)),... % maybe include other edge cases using mod/force zero
-                                        clamp(1, y + o(2), s(2)));
+                    out = lininterp2(v, clamp(1, x + o(1), s(2)),... % maybe include other edge cases using mod/force zero
+                                        clamp(1, y + o(2), s(1)));
             end
             
         end
@@ -67,14 +67,15 @@ classdef InMap
         
         
         function out = plot(obj)
-            [X,Y] = meshgrid(-6:0.1:6);
+            [X,Y] = meshgrid(-2:0.01:2);
             Z = obj.eval(X,Y);
             hold on;
             out = pcolor(X,Y,Z);
-            plot(obj.tmatrix(3),obj.tmatrix(6),'r*');
+            regT = inv(obj.tmatrix);
+            plot(regT(3),regT(6),'r*');
             out.EdgeColor = 'none';
             axis square;
-            xlim([-6,6]); ylim([-6,6]);
+            xlim([-2,2]); ylim([-2,2]);
         end
         
         
