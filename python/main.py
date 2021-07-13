@@ -1,5 +1,2 @@
-from x_ray_transformation import Surface, Hyperbolic, Euclidean, Gaussian, Polynomial, Sphere
-from test import test_metrics
-
-
-test_metrics(num_elements=1000000)
+from x_ray_transform.tests import test_domains, test_metrics
+print(314159265358979323846264338327 % 8)
