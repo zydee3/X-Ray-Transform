@@ -18,16 +18,16 @@ pow = 8;
 pow2 = 2^pow;
 times = zeros(pow+1);
 
-B = linspace(0,2*pi,pow2);
-A = linspace(-pi,pi,pow2)*0.5;
+B = linspace(0,2*pi,1);
+A = linspace(-pi,pi,pow2*100)*0.5;
 vals = zeros(pow2);
 
-for bpart = 0:pow
+for bpart = 0:0
     for apart = 0:pow
         
         vals = zeros(pow2);
         
-        bsize = (pow2/(2^bpart));
+        bsize = 1;
         asize = (pow2/(2^apart));
         
         tic
@@ -38,7 +38,7 @@ for bpart = 0:pow
                                         A((1:asize)+asize*apos));   
                                                      
                  vals((1:bsize)+bsize*bpos,...
-                      (1:asize)+asize*apos) = XrayI0(im,surface,beta,alpha)';
+                      (1:asize)+asize*apos) = XrayI0(im,surface,beta,alpha);
                 
             end
         end

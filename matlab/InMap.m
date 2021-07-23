@@ -12,6 +12,8 @@ classdef InMap
     
     methods
         function obj = InMap(values)  
+            %INMAP Constructs an instance of InMap
+            
             if (nargin == 1)
                 obj.values = values; 
 
@@ -26,6 +28,16 @@ classdef InMap
         end
         
         function obj = transform(obj, xoff,yoff, xscale,yscale, rot)
+            %TRANSFORM Takes arguments to rotate, scale and offset the
+            %function.
+            arguments
+                obj
+                xoff (1,1) {mustBeNumeric} = 0
+                yoff (1,1) {mustBeNumeric} = 0
+                xscale (1,1) {mustBeNumeric} = 1
+                yscale (1,1) {mustBeNumeric} = 1
+                rot (1,1) {mustBeNumeric} = 0
+            end
             
             obj.tmatrix = inv([cos(rot)*xscale, sin(rot)*xscale,0;...
                               -sin(rot)*yscale, cos(rot)*yscale,0;...
@@ -33,6 +45,18 @@ classdef InMap
         end
         
         function obj = bake(obj, xres,yres, xmin,ymin,xmax,ymax)
+            %BAKE Converts the type of InMap from a function handle to an
+            %image.
+            
+            arguments
+                obj
+                xres (1,1) {mustBeNumeric} = 0.2
+                yres (1,1) {mustBeNumeric} = 0.2
+                xmin (1,1) {mustBeNumeric} = -2
+                ymin (1,1) {mustBeNumeric} = -2
+                xmax (1,1) {mustBeNumeric} = 2
+                ymax (1,1) {mustBeNumeric} = 2                
+            end
             
             [X,Y] = meshgrid(xmin:1/xres:xmax,ymin:1/yres:ymax);
             obj.values = obj.values(obj.eval(X,Y));
@@ -43,8 +67,7 @@ classdef InMap
         end 
         
         function out = eval(obj, X,Y)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
+            %EVAL Evaluates the function at an array of points (X,Y).
             
             tmat = obj.tmatrix;
 
@@ -66,8 +89,20 @@ classdef InMap
            
         
         
-        function out = plot(obj)
-            [X,Y] = meshgrid(-2:0.01:2);
+        function out = plot(obj, lbound,ubound)
+            %PLOT Plots InMap on the axis aligned box defined by a lower
+            %and upper bound.
+            %   Uses obj.eval.
+            
+            arguments
+                obj
+                lbound (1,2) {mustBeNumeric} = [-2,-2]
+                ubound (1,2) {mustBeNumeric} = [2,2]
+            end
+            
+            [X,Y] = meshgrid(lbound(1):0.01:ubound(1),...
+                             lbound(2):0.01:ubound(2));
+                         
             Z = obj.eval(X,Y);
             hold on;
             out = pcolor(X,Y,Z);
@@ -93,7 +128,7 @@ end
 
 function out = lininterp2(vals, x,y) 
     s = size(vals);
-    vcy = vals( sub2ind(s,ceil(y), ceil(x))) .* (y-floor(y))  +  vals(sub2ind(s,floor(y), ceil(x))) .* (1-y+floor(y));
     vfy = vals( sub2ind(s,ceil(y),floor(x))) .* (y-floor(y))  +  vals(sub2ind(s,floor(y),floor(x))) .* (1-y+floor(y));
-    out = (vcy-vfy) .* (x-floor(x)) + vfy;
+    out = vals( sub2ind(s,ceil(y), ceil(x))) .* (y-floor(y))  +  vals(sub2ind(s,floor(y), ceil(x))) .* (1-y+floor(y));
+    out = (out-vfy) .* (x-floor(x)) + vfy;
 end

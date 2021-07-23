@@ -2,7 +2,7 @@ classdef Domain
     %DOMAIN Parent class of all other domains
     
     properties
-        originX = 0; % Handle these values after construction
+        originX = 0;
         originY = 0;
         theta = 0;
     end
@@ -10,76 +10,80 @@ classdef Domain
     properties (Access = 'private')
         bdrVAR = @(th) ones(size(th));
     end    
-    
-    properties (SetAccess = 'protected')
-        %rMax; % now unused
-    end    
-    
+        
     
     
     methods
+        
+%--------------------------------------------------------------------------
+%%                 Constructor, Characteristic Functions
+%--------------------------------------------------------------------------  
+
         function out = bdr(obj,th)
+            %BDR Computes a position of a point of the boundry in polar
+            %coordinates.
+            %   Method uses the function handle obj.bdrVAR if not 
+            %   overwritten by a subclass. 
             out = obj.bdrVAR(th);
         end
         
         function out = dbdr(obj,th)
+            %DBDR Derivative of obj.bdr.
+            %   Method computes the derivative numerically from obj.bdr if not
+            %   overwritten by a subclass.
             warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
             out = deriv(@(t) obj.bdr(t), th);
         end
         
         function out = ddbdr(obj,th)
+            %DDBDR Second derivative of obj.bdr.
+            %   Method computes the derivatives numerically from obj.bdr if not
+            %   overwritten by a subclass.
             warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
             out = dderiv(@(t) obj.bdr(t), th);
         end
         
-        
-        
+                
         function obj = Domain(bdr)
+        	%DOMAIN Constructs an instance of Domain.           
         if (strcmp(class(obj), 'Domain')) %%% -- !! TODO: hack to avoid subclass calling superclass constructor, should prolly change !!    
             if (nargin == 1 && ...
                 isa(bdr,'function_handle') && nargin(lg) == 1)
                 
                 obj.bdrVAR = bdr;
-                %obj.rMax = rMax;
             end
             
         end,end   
+   
     
-        
-    
-        function [bdr,dbdr,ddbdr] = getHandles(obj)
-            bdr = @(t) obj.bdr(t);
-            dbdr = @(t) obj.dbdr(t);
-            ddbdr = @(t) obj.ddbdr(t);
-        end 
-        
-        
-        function out = alNormal(obj, th)
-            th = th - obj.theta;
-            out = 0.5*pi - atan2(obj.bdr(th).*cos(th) + obj.dbdr(th).*sin(th),...
-                        (obj.bdr(th).*sin(th) - obj.dbdr(th).*cos(th))); 
-        end  
-        
-        
-        function [minB,maxB] = getBoundingBox(obj) 
-            %warning('Method "getBoundingBox" is slow, consider overriding.'); % consider implementing a faster numerical update to this method, something with newtons itter could work
-            rSamples = obj.bdr(linspace(0,2*pi, 1000) - obj.theta);
-            eSamples = cos(linspace(0,2*pi, 1000)).* rSamples;
-            minB = [min(eSamples),0];
-            maxB = [max(eSamples),0];
-            eSamples = sin(linspace(0,2*pi, 1000)).* rSamples;
-            minB(2) = min(eSamples);
-            maxB(2) = max(eSamples);
-        end 
-        
-        
+%--------------------------------------------------------------------------
+%%                                  Misc
+%--------------------------------------------------------------------------      
+
+       
         function minR = getMinRadius(obj) 
+            %GETMINRADIUS Returns the minimum value of obj.bdr on the
+            %interval [0,2pi].
+            %   Commputation is numerical and potentially inaccurate if not
+            %   overwritten by a subclass.
+            %   See obj.isInsideR2, getBoundingBox.
+            
             %warning('Method "getMinRadius" is slow, consider overriding.'); % see comment for getBoundingBox
             minR = min(obj.bdr(linspace(0,2*pi, 1000)));
         end 
-              
         
+        
+        function out = alNormal(obj, Th)
+            %ALNORMAL Computes the angle of the outer normal of the domain.
+            Th = Th - obj.theta;
+            out = 0.5*pi - atan2(obj.bdr(Th).*cos(Th) + obj.dbdr(Th).*sin(Th),...
+                        (obj.bdr(Th).*sin(Th) - obj.dbdr(Th).*cos(Th))); 
+        end  
+        
+                              
         function bool = isInside(obj, X, Y, ~)
+            %ISINSIDE Determines if a sequence of points is inside the domain.
+            
             %%{
             X = X - obj.originX;
             Y = Y - obj.originY;
@@ -95,6 +99,11 @@ classdef Domain
         
         
         function bool = isInsideR2(obj, X, Y, r)
+            %ISINSIDE An optimized approach of determining if a sequence of 
+            %points is inside the domain that takes a minimum radius as an 
+            %additional argument.
+            %   See obj.isInside.
+            
             X = X - obj.originX;
             Y = Y - obj.originY;
             XY2 = X.*X + Y.*Y;
@@ -107,29 +116,51 @@ classdef Domain
             end
         end
         
-    
         
-        function obj = transform(obj, argA, argB, argC) % !! TODO: This bit of code is redudnant with the constructor, fix !!
-            if (nargin == 1 && isnumeric(argA))   
-                obj.theta = argA;
-                return;   
-            elseif (nargin == 2 && isnumeric(argA) && isnumeric(argB))   
-                obj.originX = argA;
-                obj.originY = argB;
-                return;
-            elseif (isnumeric(argA) && isnumeric(argB) && isnumeric(argC))       
-                obj.theta = argA;
-                obj.originX = argB;
-                obj.originY = argC;
-                return;
-            end
-            error("Bad input arguments.")
-        end    
+        function [minB,maxB] = getBoundingBox(obj) 
+            %GETBOUNDINGBOX Returns two vectors representing the lower
+            %right and upper left corners of the domain's axis-aligned
+            %bounding box.
+            %   Commputation is numerical and potentially inaccurate if not
+            %   overwritten by a subclass.
+            %   See obj.getMinRadius.
             
+            
+            %warning('Method "getBoundingBox" is slow, consider overriding.'); % consider implementing a faster numerical update to this method, something with newtons itter could work
+            rSamples = obj.bdr(linspace(0,2*pi, 1000) - obj.theta);
+            eSamples = cos(linspace(0,2*pi, 1000)).* rSamples;
+            minB = [min(eSamples),0];
+            maxB = [max(eSamples),0];
+            eSamples = sin(linspace(0,2*pi, 1000)).* rSamples;
+            minB(2) = min(eSamples);
+            maxB(2) = max(eSamples);
+        end 
+
         
+        function obj = transform(obj, xoff, yoff, rot)
+            %TRANSFORM A method to set the properties originX, originY,
+            %theta all at once.
+            obj.originX = xoff;
+            obj.originY = yoff;
+            obj.theta = rot;
+        end    
+        
+        
+        function [bdr,dbdr,ddbdr] = getHandles(obj)
+            %METRICVALSCURV Returns bdr, dbdr, and ddbdr as function
+            %handles.
+            bdr = @(t) obj.bdr(t);
+            dbdr = @(t) obj.dbdr(t);
+            ddbdr = @(t) obj.ddbdr(t);
+        end 
+           
+        
+%--------------------------------------------------------------------------
+%%                                Plotters
+%--------------------------------------------------------------------------              
     
-        function out = plot(obj) % !! TODO: make nicer lool!!
-            %plot Displays boundry
+        function out = plot(obj)
+            %PLOT Displays the boundry using obj.bdr.
             
             n = 500;
             th = linspace(0,2*pi,n);
@@ -145,7 +176,8 @@ classdef Domain
         
         
         function out = plotAABB(obj)
-            %plot Displays the axis aligned bounding box of the domain
+            %PLOTAABB Displays the axis aligned bounding box of the domain
+            %using obj.getBoundingBox.
            
             [minB,maxB] = obj.getBoundingBox();
             pointX = [maxB(1),maxB(1),minB(1),minB(1),maxB(1)] + obj.originX;
@@ -154,13 +186,15 @@ classdef Domain
         end
         
         
-        function out = plotOrigin(obj) % !! TODO: make nicer lool!!
-            %plot Displays the axis aligned bounding box of the domain
+        function out = plotOrigin(obj)
+            %PLOTORIGIN Plots a point at the origin of the domain.
             out = plot(obj.originX,obj.originY,'b*');
         end
+ 
         
-        function out = plotAlNormal(obj) % !! TODO: make nicer lool!!
-            %plot Plots with alNorm
+        function out = plotAlNormal(obj)
+            %PLOTALNORMAL Plots the domain and the outer normals of the domain
+            %described by obj.alNormal.
             
             holdBool = ishold;
             hold on;
@@ -186,9 +220,12 @@ classdef Domain
         end
         
         
-        function out = plotIsInsideTest(obj) % !! TODO: make nicer lool!!
-            %plot Plots random points to test isInside
-            
+        function out = plotIsInsideTest(obj)
+            %PLOTISINSIDETEST Plots a random collection of points within 
+            %obj.getBoundingBox to test IsInside and IsInsideR2 methods.
+            %   Red points indicate points outside the domain, while green
+            %   points indicate inside points.
+                        
             holdBool = ishold;
             hold on;
             
@@ -208,6 +245,10 @@ classdef Domain
         
         
         function out = plotALL(obj)
+            %PLOTALL A convinent function that runs a menagerie of other
+            %plotting functions.
+            %   Intended to test that everything is working as it should.
+            
             holdBool = ishold;
             hold on;
             
@@ -223,14 +264,18 @@ classdef Domain
     end
     
     methods (Static)
-       function mustBeDomain(obj)
+        
+        function mustBeDomain(obj)
+           %MUSTBEDOMAIN Errors if the passed object is not an instance of 
+           %Domain or of a subclass of Domain.
            if (~isa(obj,'Domain'))
                error("Value must be a Domain");
            end
-       end     
+        end     
 
        
-       function obj = build(varargin)
+        function obj = build(varargin) %TODO: Delete this grabage.
+            
             obj = Domain();
             if (nargin == 0), return;
 
@@ -296,7 +341,7 @@ classdef Domain
 
             obj = Domain.build(stin);
         end    
-        
+       
        
         
     end

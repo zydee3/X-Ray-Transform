@@ -29,10 +29,17 @@ im = InMap(vals);
 
 surf = RiemannSurface(dom,met, stepType='RK4', stepSize=0.01, geoDur=10);
 
-[beta,alpha] = meshgrid(B,A);
 
 tic
-    I0_1 = XrayI0(im,surf,beta,alpha);
+    I0_1 = zeros(length(B),length(A))
+    for bpart = 1:length(B)
+            if ~mod(k,10)
+        disp(char(repmat(8,1,length(msg)+2)));
+        msg = ['k = ',num2str(k),' / ',num2str(nbt)]; disp(msg);
+    end
+        [beta,alpha] = meshgrid(bpart,A);
+        I0_1(bpart,:) = XrayI0(im,surf,beta,alpha);
+    end
 toc
 
 %--------------------------------------------------------------------------

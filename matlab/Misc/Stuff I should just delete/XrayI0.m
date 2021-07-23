@@ -1,4 +1,4 @@
-function int = XrayI0(inmap,surface, beta,alpha) 
+function int = XrayI0(inmap,surface, Beta,Alpha) 
 %XRAY Summary of this function goes here
 % -- beta and alph to be implemented in the style of a meshgrid
 
@@ -13,16 +13,16 @@ function int = XrayI0(inmap,surface, beta,alpha)
     % initialize (x,y,th,int)
 
     % this block can be optimized but is not a bottleneck
-        ra = dom.bdr(beta - dom.theta);
-        x = cos(beta) .* ra + dom.originX;
-        y = sin(beta) .* ra + dom.originY;
+        ra = dom.bdr(Beta - dom.theta);
+        x = cos(Beta) .* ra + dom.originX;
+        y = sin(Beta) .* ra + dom.originY;
         
-    th = pi + alpha + dom.alNormal(beta) + dom.theta;
-    int = zeros(size(beta));
+    th = pi + Alpha + dom.alNormal(Beta) + dom.theta;
+    int = zeros(size(Beta));
 
     t = 1;
 
-    insidepoints = ones(size(beta));%;dom.isInsideR2(xI,yI,minR2);
+    insidepoints = ones(size(Beta));%;dom.isInsideR2(xI,yI,minR2);
 
     while (t ~= NMAX) && any(any(insidepoints))
 
@@ -39,7 +39,7 @@ function int = XrayI0(inmap,surface, beta,alpha)
         insidepoints(IPidx) = dom.isInsideR2(x(IPidx),y(IPidx),minR2);
     end
 
-    int = int * surface.stepSize;
+    int = int' * surface.stepSize; % transpose for plotting/agree with inputs
     
 end
 
