@@ -9,6 +9,10 @@ classdef InMap
         tmatrix = eye(3);
     end
     
+    properties (Dependent)
+        eval 
+    end
+    
     
     methods
         function obj = InMap(values)  
@@ -64,30 +68,7 @@ classdef InMap
             obj.tmatrix = inv([xscale, 0,0;...
                                0, yscale,0;...
                                0.5*(xmin+xmax),0.5*(ymin+ymax),1]);
-        end 
-        
-        function out = eval(obj, X,Y)
-            %EVAL Evaluates the function at an array of points (X,Y).
-            
-            tmat = obj.tmatrix;
-
-            x = X*tmat(1) + Y*tmat(2) + tmat(3); % matrix multiplication
-            y = X*tmat(4) + Y*tmat(5) + tmat(6);
-            
-            switch obj.type
-                case 'h'
-                    out = obj.values(x,y);
-                case 'i'
-                    v = obj.values;
-                    s = size(v);
-                    o = (s+1)*0.5;
-                    out = lininterp2(v, clamp(1, x + o(1), s(2)),... % maybe include other edge cases using mod/force zero
-                                        clamp(1, y + o(2), s(1)));
-            end
-            
-        end
-           
-        
+        end         
         
         function out = plot(obj, lbound,ubound)
             %PLOT Plots InMap on the axis aligned box defined by a lower
@@ -113,8 +94,36 @@ classdef InMap
             xlim([-2,2]); ylim([-2,2]);
         end
         
+        function value = get.eval(obj)
+           value = @(X,Y) obj.evaluate(X,Y);
+        end
         
     end
+    
+    methods (Access = 'protected')
+        
+        function out = evaluate(obj, X,Y)
+            %EVAL Evaluates the function at an array of points (X,Y).
+            
+            tmat = obj.tmatrix;
+
+            x = X*tmat(1) + Y*tmat(2) + tmat(3); % matrix multiplication (when handled correctly, only these 6 indicies are necessarily unknown, and the resulting vector will always have a 1 in the third place)
+            y = X*tmat(4) + Y*tmat(5) + tmat(6);
+            % z = ones(size(X)) is what would be written here if we cared abt this index 
+            switch obj.type
+                case 'h'
+                    out = obj.values(x,y);
+                case 'i'
+                    v = obj.values;
+                    s = size(v);
+                    o = (s+1)*0.5;
+                    out = lininterp2(v, clamp(1, x + o(1), s(2)),... % maybe include other edge cases using mod/force zero
+                                        clamp(1, y + o(2), s(1)));
+            end
+            
+        end
+        
+    end    
 end
 
 

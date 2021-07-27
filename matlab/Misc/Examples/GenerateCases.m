@@ -2,7 +2,7 @@ clc; close all;
 addpath(genpath('./'))
 
 %% Domain.build
-d0 = Domain.build();
+d0 = Domain();
 
 dc0 = Domain.build('circle', 'radius', 1);
 dcs0 = Domain.build('cosine', 'radius', 4, 'amplitude', 1, 'cycles', 4, 'origin', [2,1], 'theta', -12);

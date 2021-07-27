@@ -58,6 +58,10 @@
 % obj.plotGeoRadiate            -- plots a family of geodesics that intersect a point
 % obj.plotGeoParallels          -- plots a family of parallel geodesics
 % obj.plotGeoCircle             -- plots a family of geodesics that lie on a circle
+% obj.plotConjugates            -- plots conjugate points along specified geodesics
+
+% obj.I0                        -- computes the xray transfomration of a scalar field 
+% obj.I1                        -- computes the xray transfomration of a vector field 
 
 % obj.geodesic                  -- computes geodesics given initial points and directions
 
@@ -96,7 +100,7 @@ ms3 = Metric( @(x,y) log(4*R^4) - 2*log(x.*x + y.*y + R*R) );
 
 %% The order and number of parameters referenced doesn't matter 
 dcos0 = cosineDomain; % a domain constructed with the default parameters
-dcos1 = cosineDomain('amplitude', 3, 'radius', 7); % doesnt reference 'cycles'
+dcos1 = cosineDomain('amplitude', 0.5, 'radius', 7); % doesnt reference 'cycles'
 dcos2 = Domain.build('cosine','radius', 7, 'amplitude', 3, 'origin', [100,200]); % same domain as above, but shifted somewhat
 
 %{
@@ -112,11 +116,13 @@ figure, dcos2.plot
 %% To plot geodesics
 % First plot the surface and set hold to on
 surf = RiemannSurface(dcos1, ms1);
-surf.stepType = 'IE';
-surf.stepSize = 0.2;
+surf.stepType = 'RK4';
+surf.stepSize = 0.1;
+surf.geoDur = 9;
+
 surf.plot; hold on
 % Then, use plot function or something
 %surf.plotGeoParallels(2,2,4);
-surf.plotGeoFan(2);
-
+surf.plotGeo(-5*ones(1,9),zeros(1,9),linspace(-pi,pi,9));
+surf.plotConjugates(-5*ones(1,9),zeros(1,9),linspace(-pi,pi,9));
 % RiemannSurface variables are changed with surf.variableName
