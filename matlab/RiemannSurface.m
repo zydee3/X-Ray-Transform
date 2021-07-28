@@ -105,7 +105,7 @@ classdef RiemannSurface
         end    
         %}
         
-        
+        %{
         function [betaO] = arcLengthBeta(obj, stepSize, maxSteps, tol)
             % ARCLENGTHBETA Generates a list of betas distributed uniformly 
             % along the domain using newtons method and surface properties
@@ -133,11 +133,14 @@ classdef RiemannSurface
                 %evaluate next beta
                 len = @(b) () - stepSize;
                 phi = @(b1,b2) 
+                
+                %update vals to prepare for the next step
+                step = step + 1;
             end    
             
             betaO = betaO(1:step-1);
         end    
-
+        %}
         
 %--------------------------------------------------------------------------
 %%                             Computers
@@ -155,7 +158,8 @@ classdef RiemannSurface
             %   to determine the method that the geodesic travels.
             
             
-            %Todo: reshape/unreshape
+            % Reshape inputs
+            X = X(:);   Y = Y(:);   Th = Th(:);
             
             dom = obj.domain;
             
@@ -169,17 +173,15 @@ classdef RiemannSurface
             ngeo = length(X);
 
             xO = zeros(ngeo, NMAX); xO(:,1) = X;
-            yO = zeros(ngeo, NMAX); yO(:,1) = Y;
-            thO = zeros(ngeo,NMAX); thO(:,1) = Th;
+            yO = xO;                yO(:,1) = Y;
+            thO = xO;               thO(:,1) = Th;
             
             t = 1;
            
             insidepoints = ones(1,ngeo);%;dom.isInsideR2(X,Y,minR2);
-
+            IPidx = find(insidepoints); 
+            
             while any(insidepoints) && (t ~= NMAX)
-
-                IPidx = find(insidepoints); 
-                noIPidx = find(~insidepoints);
 
                 % move the inside points forward
                 [xO(IPidx,t+1), yO(IPidx,t+1), thO(IPidx,t+1)] =  ...
@@ -193,12 +195,8 @@ classdef RiemannSurface
                 % march time forward
                 t = t+1;    
                 insidepoints(IPidx) = dom.isInsideR2(xO(IPidx, t),yO(IPidx, t),minR2);
-
-                % debug visualisation
-            %     clf    
-            %     plot(exp(1i*[0:2*pi/100:2*pi, 0]), 'b'); hold on; axis equal
-            %     plot(x(:,1:t)',y(:,1:t)','r'); 
-            %     pause
+                IPidx = find(insidepoints); 
+                noIPidx = find(~insidepoints);
 
             end
             
@@ -249,7 +247,7 @@ classdef RiemannSurface
                 IPidx = find(insidePoints); 
             end
 
-            %{
+            
             uO = uO * obj.stepSize; %reintroduce factored values
             switch obj.stepType
                 case 'IE'
@@ -257,7 +255,7 @@ classdef RiemannSurface
                 case 'RK4'
                     uO = uO/6;    
             end    
-            %}
+            
             
         end    
         
@@ -276,10 +274,9 @@ classdef RiemannSurface
 
             % initialize (x,y,th,int)
 
-            % this block can be optimized but is not a bottleneck
-                ra = dom.bdr(Beta - dom.theta);
-                x = cos(Beta) .* ra + dom.originX;
-                y = sin(Beta) .* ra + dom.originY;
+            ra = dom.bdr(Beta - dom.theta);
+            x = cos(Beta) .* ra + dom.originX;
+            y = sin(Beta) .* ra + dom.originY;
 
             th = pi + Alpha + dom.alNormal(Beta) + dom.theta;
             uO = zeros(size(Beta));
@@ -287,16 +284,17 @@ classdef RiemannSurface
             t = 1;
 
             insidePoints = ones(size(Beta));
-            IPidx = find(insidePoints);%;dom.isInsideR2(X,Y,minR2);
+            IPidx = find(ones(size(Beta)));%;dom.isInsideR2(X,Y,minR2);
 
             while (t ~= NMAX) && (~isempty(IPidx))
+
                 % move the inside points forward
                 [x(IPidx), y(IPidx), th(IPidx), uO(IPidx)] =  ...
                     obj.geoStepI1(x(IPidx),y(IPidx),th(IPidx), uO(IPidx), integrandU,integrandV);
 
                 % march time forward
                 t = t+1;    
-                insidePoints(IPidx) = dom.isInsideR2(x(IPidx),y(IPidx),minR2)
+                insidePoints(IPidx) = dom.isInsideR2(x(IPidx),y(IPidx),minR2);
                 IPidx = find(insidePoints); 
             end
 
@@ -312,15 +310,70 @@ classdef RiemannSurface
             
         end   
         
-        %{
-        function [xO,yO,thO, aO,bO] = geodesicJacobi(obj,X,Y,Th)
+        
+        function [xO,yO,thO, aO,bO] = geodesicJacobiAB(obj,X,Y,Th)
+            % Reshape inputs
+            X = X(:);   Y = Y(:);   Th = Th(:);
+            
+            dom = obj.domain;
+            
+            minR2 = dom.getMinRadius;
+            minR2 = minR2*minR2;
+            
+            NMAX = floor(obj.geoDur/obj.stepSize);
 
+            % initialize (x,y,th)
+
+            ngeo = length(X);
+
+            xO = zeros(ngeo, NMAX); xO(:,1) = X;
+            yO = xO;                yO(:,1) = Y;
+            thO = xO;               thO(:,1) = Th;
+            
+            % initialize ab, abdot
+            ab = ones(ngeo*2,NMAX);   ab(1:end/2,1) = 0;
+            abdot = flip(ab);
+            
+            
+            t = 1;
+           
+            insidepoints = ones(1,ngeo);%;dom.isInsideR2(X,Y,minR2);
+            IPidx = find(insidepoints);
+            noIPidx = find(~insidepoints);
+            
+            while ~isempty(IPidx) && (t ~= NMAX)
+
+                % move the inside points forward
+                [xO(IPidx,t+1),yO(IPidx,t+1),thO(IPidx,t+1), ab(IPidx,t+1),abdot(IPidx,t+1)] =  ...
+                    obj.geoStepJacobi2(xO(IPidx,t),yO(IPidx,t),thO(IPidx,t), ab(IPidx,t),abdot(IPidx,t));
+          
+                % keep everything fixed for points that reached the boundary
+                xO(noIPidx, t+1) = xO(noIPidx, t);
+                yO(noIPidx, t+1) = yO(noIPidx, t);
+                thO(noIPidx, t+1) = thO(noIPidx, t);
+
+                % march time forward
+                t = t+1;    
+                insidepoints(IPidx) = dom.isInsideR2(xO(IPidx, t),yO(IPidx, t),minR2);
+                IPidx = find(insidepoints); 
+                noIPidx = find(~insidepoints);
+            end
+            
+            % transform to agree with plotting functions
+            xO = xO(:, 1:t); yO = yO(:, 1:t); 
+            thO = thO(:, 1:t); 
+            
+            xO = xO';   yO = yO';   thO = thO';   ab = ab';
+            
+            % split ab into aO, bO
+            aO = ab(:,1:end/2);
+            bO = ab(:,end/2+1:end);
+            
         end
-        %}
+        
         
         function [xO,yO] = findConjugates(obj, X,Y,Th)
-            %FINDCONUGATES Identifies conjugate points that the characterized geodesics
-            %intersect.
+            %FINDCONUGATES Identifies conjugate points characterized by given geodesics
             
             dom = obj.domain;
 
@@ -365,9 +418,9 @@ classdef RiemannSurface
                 b = bn(IPidx);   bdot = bdotn(IPidx);
             end
         end  
-        
-        
-        
+       
+       
+       
 %--------------------------------------------------------------------------
 %%                                Ploters
 %--------------------------------------------------------------------------        
@@ -637,7 +690,7 @@ classdef RiemannSurface
                     yO = Y + hh.*sth;
                     thO = Th + 0.5 * hh.*(cth.*dylg - sth.*dxlg);
                     
-                    uO = U + integrand(xO,yO) * h;
+                    uO = U + integrand(xO,yO);
                 case 'IE' % Improved Euler  ------------------------------------------------- I0
                     % predictor
                     [lg,dxlg,dylg] = met.metricVals(X, Y);
@@ -655,7 +708,8 @@ classdef RiemannSurface
 
                     elg = exp(-.5*lg);
                                 
-                    uO = U + hovr * (integrand(X, Y) + integrand(X+h*xO, Y+h*yO)); % multipy by h/2, 
+                    uO = U + (integrand(X, Y) +...
+                              integrand(X+h*xO, Y+h*yO)); % multipy by h/2, 
                     
                     xO = X + hovr *    (xO  + elg.*cth);
                     yO = Y + hovr *    (yO  + elg.*sth);
@@ -706,7 +760,7 @@ classdef RiemannSurface
                     uO = U + (integrand(X, Y) +...
                             2*integrand(X + h/2*k1x, Y + h/2*k1y) +...
                             2*integrand(X + h/2*k2x, Y + h/2*k2y) +...
-                              integrand(X + h*xO, Y + h*yO)) * hovr; % multipy by h/6  
+                              integrand(X + h*xO, Y + h*yO)); % multipy by h/6  
                     %}
                     
                     xO = X + hovr * (k1x + 2*(k2x +xO) + elg.*cth);
@@ -757,21 +811,20 @@ classdef RiemannSurface
                     xO = elg.*cth;
                     yO = elg.*sth;
                     thO = .5*elg.*(cth.*dylg - sth.*dxlg);
-                    
-                    uO = (integrandU(X+h*xO, Y+h*yO).*cth + integrandV(X+h*xO, Y+h*yO).*sth) .* elg
-                                        
+                                                            
                     % corrector
                     [lg,dxlg,dylg] = met.metricVals(X+h*xO, Y+h*yO);
                     cth = cos(Th+h*thO); sth = sin(Th+h*thO);
 
                     elg = exp(-.5*lg);
                     
+                    uO = U + ((integrandU(X,Y).*cth + integrandV(X,Y).*sth) +...
+                              (integrandU(X+h*xO, Y+h*yO).*cth + integrandV(X+h*xO, Y+h*yO).*sth) ); % multipy by h/2, 
+                    
                     xO = X + hovr *    (xO  + elg.*cth);
                     yO = Y + hovr *    (yO  + elg.*sth);
                     thO = Th + hovr *  (thO + .5*elg.*(cth.*dylg - sth.*dxlg));   
-                    
-                    uO = U + h.*(uO + (integrandU(xO,yO).*cth + integrandV(xO,yO).*sth) .* elg); % multipy by h/2, 
-                    
+                                        
                 case 'RK4' % Runge-Kutta 4 ------------------------------------------------- I1
 
                     % first slope
@@ -811,10 +864,10 @@ classdef RiemannSurface
                     hovr = h/6;
                     elg = exp(-.5*lg);
                    
-                    uO = U + (integrand.eval(X, Y) +...
-                            2*integrand.eval(X + h/2*k1x, Y + h/2*k1y) +...
-                            2*integrand.eval(X + h/2*k2x, Y + h/2*k2y) +...
-                              integrand.eval(X + h*xO, Y + h*yO)); % multipy by h/6  
+                    uO = U + ((integrandU(X, Y).*cth + integrandV(X, Y).*sth) +... 
+                            2*(integrandU(X + h/2*k1x, Y + h/2*k1y).*cth + integrandV(X + h/2*k1x, Y + h/2*k1y).*sth) +...
+                            2*(integrandU(X + h/2*k2x, Y + h/2*k2y).*cth + integrandV(X + h/2*k2x, Y + h/2*k2y).*sth) +...
+                              (integrandU(X + h*xO, Y + h*yO).*cth + integrandV(X + h*xO, Y + h*yO).*sth)  ); % multipy by h/6  
                     
                     xO = X + hovr * (k1x + 2*(k2x +xO) + elg.*cth);
                     yO = Y + hovr * (k1y + 2*(k2y + yO) + elg.*sth);
@@ -927,9 +980,121 @@ classdef RiemannSurface
                 otherwise 
                     error('wrong timestepper')
             end
-        end    
- 
+        end
         
+        
+        function [xO,yO,thO, bO,bdotO] = geoStepJacobi2(obj,X,Y,Th, B,Bdot)
+            
+            h = obj.stepSize;
+            hovr = h/2;
+            type = obj.stepType;
+            met = obj.metric;
+            
+            switch type
+                case 'EE' % Explicit Euler
+                    [lg,dxlg,dylg,curv] = met.metricValsCurv(X, Y);
+                    curv = repmat(curv, 2,1);
+                    cth = cos(Th); sth = sin(Th);
+
+                    hh = exp(-0.5*lg)*h;
+
+                    xO = X + hh.*cth;
+                    yO = Y + hh.*sth;
+                    thO = Th + 0.5 * hh.*(cth.*dylg - sth.*dxlg);
+                    
+                    bO = B + h * Bdot;
+                    bdotO = Bdot - h .* curv .* B;
+
+                case 'IE' % Improved Euler
+
+                    % predictor
+                    [lg,dxlg,dylg,curv] = met.metricValsCurv(X, Y);
+                    curv = repmat(curv, 2,1);
+                    cth = cos(Th); sth = sin(Th);
+
+                    elg = exp(-.5*lg);
+                    
+                    xO = elg.*cth;
+                    yO = elg.*sth;
+                    thO = .5*elg.*(cth.*dylg - sth.*dxlg);
+                    k1bdot = - curv .* B; 
+
+                    % corrector
+                    [lg,dxlg,dylg,curv] = met.metricValsCurv(X+h*xO, Y+h*yO);
+                    curv = repmat(curv, 2,1);
+                    cth = cos(Th+h*thO); sth = sin(Th+h*thO);
+
+                    xO = X + hovr * (xO + exp(-.5*lg).*cth);
+                    yO = Y + hovr * (yO + exp(-.5*lg).*sth);
+                    thO = Th + hovr * (thO + 0.5*exp(-.5*lg).*(cth.*dylg - sth.*dxlg));
+                    bO = B + hovr * (Bdot + Bdot + h*k1bdot);
+                    bdotO = Bdot + hovr * (k1bdot + curv .* (h*Bdot - B));
+
+                case 'RK4' % Runge-Kutta 4
+                    
+                    % first slope
+                    [lg,dxlg,dylg,curv] = met.metricValsCurv(X, Y);
+                    curv = repmat(curv, 2,1);
+                    cth = cos(Th); sth = sin(Th);
+
+                    elg = exp(-.5*lg);
+
+                    k1x = elg.*cth;
+                    k1y = elg.*sth;
+                    k1th = .5*elg.*(cth.*dylg - sth.*dxlg);
+
+                    k1bdot = - curv .* B;         
+
+                    % second slope
+                    [lg,dxlg,dylg,curv] = met.metricValsCurv(X+hovr*k1x, Y+hovr*k1y);
+                    curv = repmat(curv, 2,1);
+                    cth = cos(Th+hovr*k1th); sth = sin(Th+hovr*k1th);
+
+                    elg = exp(-.5*lg);
+
+                    k2x = elg.*cth;
+                    k2y = elg.*sth;
+                    k2th = .5*elg.*(cth.*dylg - sth.*dxlg);
+
+                    k2b = Bdot + hovr * k1bdot;
+                    k2bdot = - curv .* (B + hovr * Bdot);
+
+                    % third slope
+                    [lg,dxlg,dylg,curv] = met.metricValsCurv(X+hovr*k2x, Y+hovr*k2y);
+                    curv = repmat(curv, 2,1);
+                    cth = cos(Th+hovr*k2th); sth = sin(Th+hovr*k2th);
+
+                    elg = exp(-.5*lg);
+
+                    xO = elg.*cth;
+                    yO = elg.*sth;
+                    thO = 0.5*elg.*(cth.*dylg - sth.*dxlg);
+                    
+                    k3b = Bdot + hovr * k2bdot;
+                    bdotO = - curv .* (B + hovr * k2b);
+                    
+                    % fourth slope
+                    [lg,dxlg,dylg,curv] = met.metricValsCurv(X+h*xO, Y+h*yO);
+                    curv = repmat(curv, 2,1);
+                    cth = cos(Th+h*thO); sth = sin(Th+h*thO);
+
+                    elg = exp(-.5*lg);
+                    
+                    hovr = h/6;
+                    
+                    xO = X + hovr * (k1x + 2*(k2x + xO)  +elg.*cth);
+                    yO = Y + hovr * (k1y + 2*(k2y + yO)  +elg.*sth);
+                    thO = Th + hovr * (k1th + 2*(k2th + thO)  +0.5*elg.*(cth.*dylg - sth.*dxlg));
+                    bO = B + h/6 * (Bdot + 2*(k2b + k3b) + Bdot+h*bdotO);
+                    bdotO = Bdot + h/6 * (k1bdot + 2*(k2bdot + bdotO) + -curv.*(B+h*k3b));
+        
+                otherwise 
+                    error('wrong timestepper')
+            end
+        end   
+        
+                
+                
         
     end
     
