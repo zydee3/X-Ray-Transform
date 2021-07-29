@@ -115,14 +115,30 @@ figure, dcos2.plot
 
 %% To plot geodesics
 % First plot the surface and set hold to on
-surf = RiemannSurface(dcos1, ms1);
+
+mg1 = gutterMetric(scale=2, sig=1);
+
+
+surf = RiemannSurface(dcos1, mg1);
 surf.stepType = 'RK4';
 surf.stepSize = 0.1;
-surf.geoDur = 9;
+surf.geoDur = 70;
 
-surf.plot; hold on
+figure;
+dcos1.plotAlNormal; hold on; axis equal
+%surf.plot; hold on
 % Then, use plot function or something
 %surf.plotGeoParallels(2,2,4);
+%{
 surf.plotGeo(-5*ones(1,9),zeros(1,9),linspace(-pi,pi,9));
 surf.plotConjugates(-5*ones(1,9),zeros(1,9),linspace(-pi,pi,9));
+%}
+
+surf.plotJacobiRadiate(-4,0);
+caxis([0,3])
+surf.plotConjugates(zeros(1,40)-4, zeros(1,40)+0, linspace(0,2*pi,40));
+
+
+
+
 % RiemannSurface variables are changed with surf.variableName

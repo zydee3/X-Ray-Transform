@@ -180,6 +180,7 @@ classdef RiemannSurface
            
             insidepoints = ones(1,ngeo);%;dom.isInsideR2(X,Y,minR2);
             IPidx = find(insidepoints); 
+            noIPidx = find(~insidepoints);
             
             while any(insidepoints) && (t ~= NMAX)
 
@@ -203,10 +204,82 @@ classdef RiemannSurface
             xO = xO(:, 1:t); yO = yO(:, 1:t); 
             thO = thO(:, 1:t); 
             
-            xO = xO'; % transpose to agree with plotting function, should probably change down the line
-            yO = yO';
-            thO = thO';
+            sze = size(xO);
+            sze = [size(X),sze(end)];
+            
+            xO = reshape(xO,sze); % reshape to agree with inputs
+            yO = reshape(yO,sze);
+            thO = reshape(thO,sze);
         end    
+        
+        
+        function [xO,yO,thO, aO,bO] = geodesicJacobiAB(obj,X,Y,Th)
+            % Reshape inputs
+            X = X(:);   Y = Y(:);   Th = Th(:);
+            
+            dom = obj.domain;
+            
+            minR2 = dom.getMinRadius;
+            minR2 = minR2*minR2;
+            
+            NMAX = floor(obj.geoDur/obj.stepSize);
+
+            % initialize (x,y,th)
+
+            ngeo = length(X);
+
+            xO = zeros(ngeo, NMAX); xO(:,1) = X;
+            yO = xO;                yO(:,1) = Y;
+            thO = xO;               thO(:,1) = Th;
+            
+            % initialize ab, abdot
+            ab = ones(ngeo*2,NMAX);   ab(1:end/2,1) = 0;
+            abdot = flip(ab);
+
+            t = 1;
+           
+            insidepoints = ones(1,ngeo);%;dom.isInsideR2(X,Y,minR2);
+            IPidx = find(insidepoints);
+            noIPidx = find(~insidepoints);
+            
+            while ~isempty(IPidx) && (t ~= NMAX)
+
+                % move the inside points forward
+                [xO(IPidx,t+1),yO(IPidx,t+1),thO(IPidx,t+1), ab([IPidx,IPidx+ngeo],t+1),abdot([IPidx,IPidx+ngeo],t+1)] =  ...
+                    obj.geoStepJacobi2(xO(IPidx,t),yO(IPidx,t),thO(IPidx,t), ab([IPidx,IPidx+ngeo],t),abdot([IPidx,IPidx+ngeo],t));
+          
+                % keep everything fixed for points that reached the boundary
+                xO(noIPidx, t+1) = xO(noIPidx, t);
+                yO(noIPidx, t+1) = yO(noIPidx, t);
+                thO(noIPidx, t+1) = thO(noIPidx, t);
+
+                % march time forward
+                t = t+1;    
+                insidepoints(IPidx) = dom.isInsideR2(xO(IPidx, t),yO(IPidx, t),minR2);
+                IPidx = find(insidepoints); 
+                noIPidx = find(~insidepoints);
+            end
+            
+            xO = xO(:, 1:t); yO = yO(:, 1:t); 
+            thO = thO(:, 1:t); 
+                        
+            % split ab into aO, bO
+            bO = ab(1:end/2,:);
+            aO = ab(end/2+1:end,:);
+            
+            aO = aO(:, 1:t); bO = bO(:, 1:t); 
+            
+            % reshape to agree with inputs
+            sze = size(xO);
+            sze = [size(X),sze(end)];
+            
+            xO = reshape(xO,sze);
+            yO = reshape(yO,sze);
+            thO = reshape(thO,sze);
+            aO = reshape(aO,sze);
+            bO = reshape(bO,sze);
+            
+        end
         
         
         function [uO] = I0(obj,Beta,Alpha, integrand)
@@ -310,67 +383,59 @@ classdef RiemannSurface
             
         end   
         
-        
-        function [xO,yO,thO, aO,bO] = geodesicJacobiAB(obj,X,Y,Th)
-            % Reshape inputs
-            X = X(:);   Y = Y(:);   Th = Th(:);
+        %{.
+        function [intO] = Backproject(obj, xray, Beta,Alpha, resolution)
+            
+            %Note: Beta,Alpha should be the values used to generate the
+            %xray.
             
             dom = obj.domain;
             
+            % initialize function grid
+            [minB,maxB] = dom.getBoundingBox;
+            intO = zeros(resolution,resolution);
+            gCount = zeros(resolution,resolution);
+
             minR2 = dom.getMinRadius;
             minR2 = minR2*minR2;
-            
+
             NMAX = floor(obj.geoDur/obj.stepSize);
 
-            % initialize (x,y,th)
+            % initialize (x,y,th,int)
+            ra = dom.bdr(Beta - dom.theta);
+            x = cos(Beta) .* ra + dom.originX;
+            y = sin(Beta) .* ra + dom.originY;
 
-            ngeo = length(X);
+            th = pi + Alpha + dom.alNormal(Beta) + dom.theta;
 
-            xO = zeros(ngeo, NMAX); xO(:,1) = X;
-            yO = xO;                yO(:,1) = Y;
-            thO = xO;               thO(:,1) = Th;
-            
-            % initialize ab, abdot
-            ab = ones(ngeo*2,NMAX);   ab(1:end/2,1) = 0;
-            abdot = flip(ab);
-            
-            
             t = 1;
-           
-            insidepoints = ones(1,ngeo);%;dom.isInsideR2(X,Y,minR2);
-            IPidx = find(insidepoints);
-            noIPidx = find(~insidepoints);
-            
-            while ~isempty(IPidx) && (t ~= NMAX)
+
+            insidePoints = ones(size(Beta));
+            IPidx = find(ones(size(Beta)));%;dom.isInsideR2(X,Y,minR2);
+
+            while (t ~= NMAX) && (~isempty(IPidx))
 
                 % move the inside points forward
-                [xO(IPidx,t+1),yO(IPidx,t+1),thO(IPidx,t+1), ab(IPidx,t+1),abdot(IPidx,t+1)] =  ...
-                    obj.geoStepJacobi2(xO(IPidx,t),yO(IPidx,t),thO(IPidx,t), ab(IPidx,t),abdot(IPidx,t));
-          
-                % keep everything fixed for points that reached the boundary
-                xO(noIPidx, t+1) = xO(noIPidx, t);
-                yO(noIPidx, t+1) = yO(noIPidx, t);
-                thO(noIPidx, t+1) = thO(noIPidx, t);
+                [x(IPidx), y(IPidx), th(IPidx)] =  ...
+                    obj.geoStep(x(IPidx),y(IPidx),th(IPidx));
+
+                % place xray values onto function grid (TODO: interpolate)
+                inX = clamp(1, round((x(IPidx) - minB(1)) / (maxB(1)-minB(1)) * resolution), resolution );
+                inY = clamp(1, round((y(IPidx) - minB(2)) / (maxB(2)-minB(2)) * resolution), resolution );
+                in = sub2ind([resolution,resolution], inY,inX);
+                                
+                intO(in) = intO(in) + xray(IPidx);
+                gCount(in) = gCount(in) + 1;
 
                 % march time forward
                 t = t+1;    
-                insidepoints(IPidx) = dom.isInsideR2(xO(IPidx, t),yO(IPidx, t),minR2);
-                IPidx = find(insidepoints); 
-                noIPidx = find(~insidepoints);
-            end
+                insidePoints(IPidx) = dom.isInsideR2(x(IPidx),y(IPidx),minR2);
+                IPidx = find(insidePoints); 
+            end 
             
-            % transform to agree with plotting functions
-            xO = xO(:, 1:t); yO = yO(:, 1:t); 
-            thO = thO(:, 1:t); 
-            
-            xO = xO';   yO = yO';   thO = thO';   ab = ab';
-            
-            % split ab into aO, bO
-            aO = ab(:,1:end/2);
-            bO = ab(:,end/2+1:end);
-            
-        end
-        
+            intO = intO./gCount;
+        end   
+        %}
         
         function [xO,yO] = findConjugates(obj, X,Y,Th)
             %FINDCONUGATES Identifies conjugate points characterized by given geodesics
@@ -429,8 +494,14 @@ classdef RiemannSurface
             %PLOTGEO Plots the geodesic paths described by obj.metric using
             %obj.geodesic.
             %   This method is to be used in tandom with obj.plot.
+            
+            % reshape for plotting
+            X = X(:);   Y = Y(:);   Th = Th(:);
+            
             [xO,yO,~] = obj.geodesic(X,Y,Th);
             
+            % transpose for plotting
+            xO = xO(:,:)';   yO = yO(:,:)';
             plot(xO,yO,'r')
         end  
         
@@ -529,6 +600,29 @@ classdef RiemannSurface
             if (~holdBool), hold off; end;
         end  
 
+        
+        function plotJacobiRadiate(obj, x,y)
+            
+            count = 40;
+            
+            Th = linspace(0,2*pi, count);
+            X = ones(size(Th)) * x;
+            Y = ones(size(Th)) * y;
+            
+            inside = find(obj.domain.isInside(X(1:end-1),Y(1:end-1)));
+            X = X(inside)';   Y = Y(inside)';   Th = Th(inside)';
+            
+            
+            [xO,yO,~, aO,bO] = obj.geodesicJacobiAB(X,Y,Th);
+            
+            for i= 1:count-1
+                hold on
+                s = pcolor(repmat(xO(i,:)',1,2),...
+                         repmat(yO(i,:)',1,2),...
+                         repmat(abs(bO(i,:))',1,2));
+               s.FaceAlpha=0; s.EdgeColor='interp'; s.LineWidth = 2;
+            end
+        end    
               
         
         function plotConjugates(obj, X,Y,Th)
@@ -540,7 +634,7 @@ classdef RiemannSurface
             
             [cX,cY] = obj.findConjugates(X,Y,Th);
             
-            plot(cX,cY,'b*','MarkerSize',5);
+            plot(cX,cY,'g*','MarkerSize',5);
             
         end  
 

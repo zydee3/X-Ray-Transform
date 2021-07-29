@@ -18,7 +18,7 @@ func = im.eval;
 
 ss = 0.2;
 surf = RiemannSurface(dom,met, stepType='RK4', stepSize=ss, geoDur=20);
-[beta,alpha] = meshgrid(linspace(0,2*pi,250),linspace(-pi,pi,250)*0.5);
+[beta,alpha] = meshgrid(linspace(0,2*pi,50),linspace(-pi,pi,50)*0.5);
 
 
 
@@ -53,7 +53,7 @@ toc
 
 %{
 surf.stepType = 'EE';
-surf.stepSize = 0.00001;
+surf.stepSize = 0.001;
 tic
     xrayComp = surf.I0(beta,alpha, im.eval);
 toc
