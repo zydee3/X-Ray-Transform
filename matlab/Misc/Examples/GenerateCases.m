@@ -53,10 +53,10 @@ examp0 = Metric.build('myexample1');
 %% RiemannSuface
 rs0 = RiemannSurface();
 rs1 = RiemannSurface(dcs0,mh0);
-rs2 = RiemannSurface(dc0,meat0);
-rs3 = RiemannSurface(dc0,ms0);
-rs4 = RiemannSurface(dcs0,mp0);
-rs5 = RiemannSurface(dc0,mh0);
+rs2 = RiemannSurface(d5star0,ms0);
+rs3 = RiemannSurface(darrow0,ms0);
+rs4 = RiemannSurface(dsp0,mp0);
+rs5 = RiemannSurface(darrow0,mh0);
 
 
 %% InFunction

@@ -1,4 +1,4 @@
-from x_ray_transform.tests import test_domains, test_surface, test_metrics
+from x_ray_transform.tests import test_surface
 
 # test_domains()
 # test_metrics()
