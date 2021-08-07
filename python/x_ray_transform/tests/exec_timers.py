@@ -1,4 +1,5 @@
 import time
+
 from numba import objmode, njit
 
 default_time_message = "Total Time Elapsed"
@@ -10,7 +11,6 @@ def time_computation(entity=None, arg1=None, arg2=None, entity_name=""):
         start = time.perf_counter()
 
     entity.compute_values(arg1, arg2)
-    # entity_type = entity.__class__.__name__
 
     # just nice formatting
     with objmode():
@@ -26,7 +26,7 @@ def time_computation(entity=None, arg1=None, arg2=None, entity_name=""):
 
 
 @njit(fastmath=True)
-def time_geo_step(surface, x_values, y_values, theta_values):
+def time_geo_step(surface, x_values, y_values, theta_values, domain_name="", metric_name=""):
     with objmode(start='f8'):
         start = time.perf_counter()
 
@@ -34,4 +34,4 @@ def time_geo_step(surface, x_values, y_values, theta_values):
 
     with objmode():
         end = time.perf_counter()
-        print('Time Elapsed (Surface - Domain: {}, Metric: {}): {}'.format(surface.domain, surface.metric, end - start))
+        print('Time Elapsed (Surface - Domain: {}, Metric: {}): {}'.format(domain_name, metric_name, end - start))

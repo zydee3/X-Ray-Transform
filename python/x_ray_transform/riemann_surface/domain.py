@@ -2,10 +2,7 @@ from numba.experimental import jitclass
 from numba import njit, types
 from numpy import sin, cos, power, square, pi, arctan2, zeros, empty, array, sqrt, linspace, amin, amax, array, any, where
 
-
-type_circle = 0
-type_cosine = 1
-type_ellipse = 2
+from x_ray_transform import type_domain_circle, type_domain_cosine, type_domain_ellipse
 
 # region compute_values
 
@@ -129,11 +126,11 @@ class Domain:
         self.origin = 0
 
     def compute_values(self, theta, compute_alpha_normal=False):
-        if self.domain_type == type_circle:
+        if self.domain_type == type_domain_circle:
             return parallel_compute_values_circle(self.radius, theta, compute_alpha_normal)
-        if self.domain_type == type_cosine:
+        if self.domain_type == type_domain_cosine:
             return parallel_compute_values_cosine(self.cycles, self.radius, self.amplitude, theta, compute_alpha_normal)
-        if self.domain_type == type_ellipse:
+        if self.domain_type == type_domain_ellipse:
             return parallel_compute_values_ellipse(self.minor_radius, self.major_radius, self.theta_offset, theta, compute_alpha_normal)
 
     def get_bounding_box(self):
