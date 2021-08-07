@@ -152,7 +152,7 @@ classdef Metric
         end
                 
         
-        function plotALL(obj,X,Y)
+        function figureALL(obj,X,Y)
             %PLOTALL A convinient function that creates a new figure and 
             %plots lg, dxlg, dylg and curv. 
             %   Intended to test that everything is working as it should.
@@ -177,15 +177,19 @@ classdef Metric
             subplot(2,2,1);
             p = surf(X0,Y0,lgt,'EdgeColor','none');
             view(2); 
+            title('lg') 
             subplot(2,2,2);
             p = surf(X0,Y0,dxlgt,'EdgeColor','none');
             view(2); 
+            title('dxlg') 
             subplot(2,2,3);
             p = surf(X0,Y0,dylgt,'EdgeColor','none');
             view(2); 
+            title('dylg') 
             subplot(2,2,4);
             p = surf(X0,Y0,curvt,'EdgeColor','none');
             view(2); 
+            title('curv') 
         end
         
         

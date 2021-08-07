@@ -120,7 +120,7 @@ classdef Domain
         function [minB,maxB] = getBoundingBox(obj) 
             %GETBOUNDINGBOX Returns two vectors representing the lower
             %right and upper left corners of the domain's axis-aligned
-            %bounding box.
+            %bounding box relative to the domain's origin.
             %   Commputation is numerical and potentially inaccurate if not
             %   overwritten by a subclass.
             %   See obj.getMinRadius.
@@ -172,6 +172,21 @@ classdef Domain
             pointY = sin(th) .* r + y0;
             
             out = plot(pointX,pointY,'b');
+        end
+        
+        
+        function out = plotBdrPoint(obj, Beta)
+            %PLOT Displays the boundry using obj.bdr.
+            
+            n = 500;
+            th0 = obj.theta;
+            x0 = obj.originX;
+            y0 = obj.originY;
+            r = obj.bdr(Beta - th0);
+            pointX = cos(Beta) .* r + x0;
+            pointY = sin(Beta) .* r + y0;
+            
+            out = plot(pointX,pointY,'r*');
         end
         
         

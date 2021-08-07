@@ -76,7 +76,7 @@
 %% To construct a sphere metric:
 %(Domain and metric are coded in basically the same way)
 
-R = 2;
+R = 0.001;
 
 ms0 = sphereMetric;
 ms0.radius = R; % (we can modify parameters by name after creation)
@@ -116,10 +116,10 @@ figure, dcos2.plot
 %% To plot geodesics
 % First plot the surface and set hold to on
 
-mg1 = gutterMetric(scale=2, sig=1);
+mg1 = gutterMetric(scale=1, sig=2);
 
 
-surf = RiemannSurface(dcos1, mg1);
+surf = RiemannSurface(dcos1, ms1);
 surf.stepType = 'RK4';
 surf.stepSize = 0.1;
 surf.geoDur = 70;
@@ -134,8 +134,8 @@ surf.plotGeo(-5*ones(1,9),zeros(1,9),linspace(-pi,pi,9));
 surf.plotConjugates(-5*ones(1,9),zeros(1,9),linspace(-pi,pi,9));
 %}
 
-surf.plotJacobiRadiate(-4,0);
-caxis([0,3])
+surf.figureJacobiRadiate(-4,0);
+%caxis([-20,20])
 surf.plotConjugates(zeros(1,40)-4, zeros(1,40)+0, linspace(0,2*pi,40));
 
 

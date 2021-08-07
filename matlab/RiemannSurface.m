@@ -41,20 +41,23 @@ classdef RiemannSurface
             % characterization of geodesics to a (X,Y,Th) one.
             dom = obj.domain;
             ra = dom.bdr(Beta - dom.theta);
-            xO = cos(Beta) * ra + dom.originX;
-            yO = sin(Beta) * ra + dom.originY;
+            xO = cos(Beta) .* ra + dom.originX;
+            yO = sin(Beta) .* ra + dom.originY;
             
             thO = pi + Alpha + dom.alNormal(Beta) + dom.theta;
         end    
+             
         
-        %{.
-        function [betaO,alphaO] = XYThtoBA(obj, X,Y,Th)
-            % XYTHTOBA A very inefficent method to convert from a (X,Y,Th)
-            % characterization of geodesics to a (Beta,Alpha) one.
-            %   It is expected that the given (X,Y) is inside the domain.
-            %   Trapped geodesics are returned as NaN.
-            %
-            %   Hey, never use this.
+        function [betaO,alphaO] = geodesicEnd(obj, X,Y,Th)
+            % Formerly known as XYThtoBA, code transfered into geodesicFoot
+            
+
+        end    
+               
+        
+        function [betaO,alphaO] = geodesicFoot(obj, X,Y,Th)
+            Th = Th + pi;
+            
             dom = obj.domain;
             origX = dom.originX;
             origY = dom.originX;
@@ -67,16 +70,16 @@ classdef RiemannSurface
             NMAX = floor(obj.geoDur/obj.stepSize);
             
             % initialize betaO,xn,yn,thn
-            betaO = NaN(size(X));
+            betaO = NaN(size(X)); alphaO = NaN(size(X));
             xn = zeros(size(X));   yn = zeros(size(X));   thn = zeros(size(X));
             
             t = 1;
-            IPidx = find(ones(size(X))); %TODO: consider changing this?  %;dom.isInsideR2(X,Y,minR2);
+            IPidx = find(dom.isInsideR2(X,Y,minR2)); %TODO: consider changing this? 
 
             while (t ~= NMAX) && any(IPidx)
                 
                 % move the inside points forward (assume the point is inside at the begining of every loop)
-                [xn(IPidx),yn(IPidx),thn(IPidx)] = obj.geoStep(X(IPidx),Y(IPidx),Th(IPidx));
+                [xn,yn,thn] = obj.geoStep(X,Y,Th);
       
                 % march time forward, update X,Y,Th if they are still inside
                 t = t+1;    
@@ -86,7 +89,7 @@ classdef RiemannSurface
                 X(IPidx) = xn(IPidx);   Y(IPidx) = yn(IPidx);   Th(IPidx) = thn(IPidx);
             end
 
-            % search for intersections + interpolate results (TODO: optimize)
+            % search for intersections + interpolate results (TODO: optimize/make better)
             noIPidx = find(~dom.isInsideR2(xn,yn,minR2));   
             X = X(noIPidx);   Y = Y(noIPidx); 
             xn = xn(noIPidx);   yn = yn(noIPidx); 
@@ -97,50 +100,89 @@ classdef RiemannSurface
             valout = sqrt((X-origX).^2 + (Y-origY).^2) - dom.bdr(arcTout);
             valin  = sqrt((xn-origX).^2 + (yn-origY).^2) - dom.bdr(arcTin);
             
-            betaO(noIPidx) = (arcTin - arcTout) .* valout./(valout-valin) + arcTout;
+            betaO(noIPidx) = arcTin;%(arcTin - arcTout) .* valout./(valout-valin) + arcTout;
             
             % compute alpha
-            alphaO(noIPidx) = pi + atan2(Y-yn,X-xn) - dom.alNormal(betaO(noIPidx));
-            alphaO(noIPidx) = mod(alphaO(noIPidx) + pi, 2*pi) - pi;
-        end    
-        %}
+            alphaO(noIPidx) = -dom.alNormal(betaO(noIPidx)) + atan2(Y-yn,X-xn) + pi;
+            
+        end            
         
-        %{
-        function [betaO] = arcLengthBeta(obj, stepSize, maxSteps, tol)
-            % ARCLENGTHBETA Generates a list of betas distributed uniformly 
-            % along the domain using newtons method and surface properties
-            % defined by the metric.
-            %   Very inefficient, it's best to pre-generate these values of
-            %   beta only once and to store their computation in a variable
-            %   for re-use.
-            %
-            % Scheme: 
-            %   - Begin with Beta_0 = 0, 
-            %   - Apply secant method with arbitrary IC Beta_0, Beta_0 + stepSize
-            %       to find the zeros of the function parameterized by Beta_1 "(arclength from Beta_0 to Beta_1) - stepSize"
-            %   - repeat with x until the max number of steps has been reached
-            %       or until Beta_n has completed a full cycle
+        
+        function [betaO,alphaO] = scatteringRelation(Beta,Alpha)
+            [X,Y,Th] = obj.BAtoXYTh(Beta,Alpha);
+            [betaO,alphaO] = geodesicEnd(obj, X,Y,Th);
+        end    
+       
+        
+        function [betaO] = StoBeta(obj, S, stepSize)
             
-            h = obj.stepSize;   hovr = h/2;   pi2 = 2*pi;
-            met = obj.metric;
-            dom = obj.domain;
+            h = stepSize; % perhaps replace this with obj.stepSize
             
-            % Initialize betas, step counter
-            betaO = zeros(1,maxSteps);
-            step = 1;
+            sze = size(S);
+            S = S(:);
+            if (~issorted(S))
+                S = sort(S);
+                warning('input lengths are not already sorted. expect unpredictable ordering')                
+            end
+            if any(S<0), error('arclengths cannot be negative'), end
             
-            while (step ~= maxSteps) && ~(betaO(step) >= pi2)
-                %evaluate next beta
-                len = @(b) () - stepSize;
-                phi = @(b1,b2) 
+            
+            betaO = zeros(sze);
+            spart = 0;
+            betapart = 0;
+            
+            for i = 1:length(S) % loop over lengths in order
                 
-                %update vals to prepare for the next step
-                step = step + 1;
+                sD = 0;
+                
+                while spart < S(i)
+                    spart = spart + sD;
+                    sD = obj.arcLengthStep(betapart, h);
+                    betapart = betapart + h;
+                end
+                betaO(i) = betapart;
+                
+                %spart = S(i);
             end    
             
-            betaO = betaO(1:step-1);
+            betaO = mod(betaO,2*pi);
         end    
-        %}
+                  
+        
+        function [sO] = BetatoS(obj, Beta, stepSize)
+            
+            h = stepSize; % perhaps replace this with obj.stepSize
+            
+            sze = size(Beta);
+            Beta = Beta(:);
+            if (~issorted(Beta))
+                Beta = sort(Beta);
+                warning('input lengths are not already sorted. expect unpredictable ordering')
+            end
+            if any(Beta<0), error('beta cannot be negative'), end
+            
+            
+            sO = zeros(sze);
+            spart = 0;
+            betapart = 0;
+            
+            for i = 1:length(Beta) % loop over betas in order
+                
+                sD = 0;
+                
+                while betapart < Beta(i)
+                    spart = spart + sD;
+                    sD = obj.arcLengthStep(betapart, h);
+                    betapart = betapart + h;
+                end
+                sO(i) = spart;
+                
+            end    
+            
+        end    
+ 
+        
+                
         
 %--------------------------------------------------------------------------
 %%                             Computers
@@ -384,57 +426,30 @@ classdef RiemannSurface
         end   
         
         %{.
-        function [intO] = Backproject(obj, xray, Beta,Alpha, resolution)
-            
-            %Note: Beta,Alpha should be the values used to generate the
-            %xray.
+        function [fO] = I0star(obj, xray, X,Y, geosPer)
+            % Xray must be a 2 parameter function defined on [0,2pi]x[-pi,pi].
+            % 
+            sze = size(X);
+            fO = zeros(sze);
             
             dom = obj.domain;
-            
-            % initialize function grid
-            [minB,maxB] = dom.getBoundingBox;
-            intO = zeros(resolution,resolution);
-            gCount = zeros(resolution,resolution);
-
             minR2 = dom.getMinRadius;
             minR2 = minR2*minR2;
-
-            NMAX = floor(obj.geoDur/obj.stepSize);
-
-            % initialize (x,y,th,int)
-            ra = dom.bdr(Beta - dom.theta);
-            x = cos(Beta) .* ra + dom.originX;
-            y = sin(Beta) .* ra + dom.originY;
-
-            th = pi + Alpha + dom.alNormal(Beta) + dom.theta;
-
-            t = 1;
-
-            insidePoints = ones(size(Beta));
-            IPidx = find(ones(size(Beta)));%;dom.isInsideR2(X,Y,minR2);
-
-            while (t ~= NMAX) && (~isempty(IPidx))
-
-                % move the inside points forward
-                [x(IPidx), y(IPidx), th(IPidx)] =  ...
-                    obj.geoStep(x(IPidx),y(IPidx),th(IPidx));
-
-                % place xray values onto function grid (TODO: interpolate)
-                inX = clamp(1, round((x(IPidx) - minB(1)) / (maxB(1)-minB(1)) * resolution), resolution );
-                inY = clamp(1, round((y(IPidx) - minB(2)) / (maxB(2)-minB(2)) * resolution), resolution );
-                in = sub2ind([resolution,resolution], inY,inX);
-                                
-                intO(in) = intO(in) + xray(IPidx);
-                gCount(in) = gCount(in) + 1;
-
-                % march time forward
-                t = t+1;    
-                insidePoints(IPidx) = dom.isInsideR2(x(IPidx),y(IPidx),minR2);
-                IPidx = find(insidePoints); 
-            end 
             
-            intO = intO./gCount;
-        end   
+            IPidx = find(dom.isInsideR2(X,Y,minR2));
+            os = ones(size(IPidx));
+            
+            ths = linspace(0,2*pi,geosPer+1);
+            ths = ths(1:end-1);
+            
+            for (i = 1:geosPer)
+                [beta,alpha] = obj.geodesicFoot(X(IPidx),Y(IPidx),ths(i)*os);
+                fO(IPidx) = fO(IPidx) + xray(mod(beta,2*pi),mod(alpha+pi/2,pi)-pi/2);
+            end    
+            
+            fO = fO * 2*pi/geosPer;
+            
+        end
         %}
         
         function [xO,yO] = findConjugates(obj, X,Y,Th)
@@ -485,7 +500,26 @@ classdef RiemannSurface
         end  
        
        
-       
+        function [sO] = arcLength(obj, beta0,beta1, stepSize)
+            % not properly vectorized*****
+            
+            h = stepSize; % perhaps replace this with obj.stepSize
+            
+            sO = 0;   sD = 0;
+            
+            % step from beta0 until beta1 is reached
+                
+            while (beta0 < beta1)
+                sO = sO + sD;
+                sD = obj.arcLengthStep(beta0, h);
+                beta0 = beta0 + h;
+            end    
+            
+            % lin interpolate the last value
+            sO = sO + sD .*(beta1-beta0+h)./(h);
+        end 
+        
+        
 %--------------------------------------------------------------------------
 %%                                Ploters
 %--------------------------------------------------------------------------        
@@ -601,27 +635,46 @@ classdef RiemannSurface
         end  
 
         
-        function plotJacobiRadiate(obj, x,y)
+        function figureJacobiRadiate(obj, x,y)
             
             count = 40;
+            dom = obj.domain;
+            [minB,maxB] = dom.getBoundingBox;
             
             Th = linspace(0,2*pi, count);
             X = ones(size(Th)) * x;
             Y = ones(size(Th)) * y;
             
-            inside = find(obj.domain.isInside(X(1:end-1),Y(1:end-1)));
+            inside = find(dom.isInside(X(1:end-1),Y(1:end-1)));
             X = X(inside)';   Y = Y(inside)';   Th = Th(inside)';
             
             
             [xO,yO,~, aO,bO] = obj.geodesicJacobiAB(X,Y,Th);
             
-            for i= 1:count-1
-                hold on
-                s = pcolor(repmat(xO(i,:)',1,2),...
-                         repmat(yO(i,:)',1,2),...
-                         repmat(abs(bO(i,:))',1,2));
-               s.FaceAlpha=0; s.EdgeColor='interp'; s.LineWidth = 2;
-            end
+            figure;
+            subplot(1,2,1); axis equal; hold on;
+                dom.plotAlNormal;
+                for i= 1:count-1
+                    s = pcolor(repmat(xO(i,:)',1,2),...
+                             repmat(yO(i,:)',1,2),...
+                             repmat(aO(i,:)',1,2));
+                   s.FaceAlpha=0; s.EdgeColor='interp'; s.LineWidth = 2;
+                end
+                title('geodesic flow a') 
+                xlim([minB(1),maxB(1)]);
+                ylim([minB(1),maxB(1)]);
+            
+            subplot(1,2,2); axis equal; hold on;
+                dom.plotAlNormal;
+                for i= 1:count-1
+                    s = pcolor(repmat(xO(i,:)',1,2),...
+                             repmat(yO(i,:)',1,2),...
+                             repmat(bO(i,:)',1,2));
+                   s.FaceAlpha=0; s.EdgeColor='interp'; s.LineWidth = 2;
+                end
+                title('geodesic flow b') 
+                xlim([minB(1),maxB(1)]);
+                ylim([minB(1),maxB(1)]);
         end    
               
         
@@ -1188,7 +1241,68 @@ classdef RiemannSurface
         end   
         
                 
-                
+        function [sDO] = arcLengthStep(obj, Beta, stepSize)
+            % ARCLENGTHSTEP
+            % Unlike the geostep functions, this method does not update
+            % values, rather evaluates the difference between steps.
+            h = stepSize; % perhaps replace this with obj.stepSize
+            hovr = h/2;
+            met = obj.metric;
+            dom = obj.domain;
+            xoff = dom.originX; yoff = dom.originY;
+            type = obj.stepType;
+            
+            switch type
+                case 'EE' % Explicit Euler  ------------------------------------------------- ArcStep
+                    cth = cos(Beta); sth = sin(Beta);
+                    b = dom.bdr(Beta);
+                    db = dom.dbdr(Beta);
+                                        
+                    sDO = h * exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
+                    
+                case 'IE' % Trapazoid rule  ------------------------------------------------- ArcStep
+                    % left sample
+                    cth = cos(Beta); sth = sin(Beta);
+                    b = dom.bdr(Beta);
+                    db = dom.dbdr(Beta);
+                                        
+                    sDO = exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
+                    
+                    % right sample
+                    Beta = Beta + h;
+                    cth = cos(Beta); sth = sin(Beta);
+                    b = dom.bdr(Beta);
+                    db = dom.dbdr(Beta);
+                    
+                    sDO = hovr * (exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db) + sDO);
+                case 'RK4' % Simpsons Rule  ------------------------------------------------- ArcStep
+                    % left sample
+                    cth = cos(Beta); sth = sin(Beta);
+                    b = dom.bdr(Beta);
+                    db = dom.dbdr(Beta);
+                                        
+                    k1sD = exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
+                    
+                    % middle sample
+                    Beta = Beta + hovr;
+                    cth = cos(Beta); sth = sin(Beta);
+                    b = dom.bdr(Beta);
+                    db = dom.dbdr(Beta);
+                    
+                    sDO = exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
+                    
+                    % right sample                    
+                    Beta = Beta + hovr;
+                    cth = cos(Beta); sth = sin(Beta);
+                    b = dom.bdr(Beta);
+                    db = dom.dbdr(Beta);
+                    
+                    sDO = h/6 * (exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db) + 4*sDO + k1sD);
+                    
+                otherwise 
+                    error('wrong timestepper')
+            end
+        end                
         
     end
     
