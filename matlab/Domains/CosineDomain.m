@@ -1,9 +1,9 @@
 classdef cosineDomain < Domain
     
     properties
-        radius
-        amplitude
-        cycles
+        radius (1,1) {mustBeNumeric}
+        amplitude (1,1) {mustBeNumeric}
+        cycles (1,1) {mustBeInteger}
     end
     
     methods

@@ -1,8 +1,8 @@
 classdef ellipseDomain < Domain
     
     properties
-        radiusA
-        radiusB
+        radiusA (1,1) {mustBeNumeric}
+        radiusB (1,1) {mustBeNumeric}
     end
     
     methods

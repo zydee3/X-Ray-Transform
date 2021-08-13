@@ -4,7 +4,7 @@ classdef InMap
     
     properties (Access = 'protected')
         values = [1];
-        type = 'i';
+        type = 'g';
         
         tmatrix = eye(3);
     end
@@ -24,7 +24,7 @@ classdef InMap
                 if isa(values,'function_handle')
                     obj.type = 'h';
                 elseif isnumeric(values)
-                    obj.type = 'i';
+                    obj.type = 'g';
                 else
                     error('Wrong data type for values.');
                 end 
@@ -113,7 +113,7 @@ classdef InMap
             switch obj.type
                 case 'h'
                     out = obj.values(x,y);
-                case 'i'
+                case 'g'
                     v = obj.values;
                     s = size(v);
                     o = (s+1)*0.5;
@@ -141,3 +141,4 @@ function out = lininterp2(vals, x,y)
     out = vals( sub2ind(s,ceil(y), ceil(x))) .* (y-floor(y))  +  vals(sub2ind(s,floor(y), ceil(x))) .* (1-y+floor(y));
     out = (out-vfy) .* (x-floor(x)) + vfy;
 end
+

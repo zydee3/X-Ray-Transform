@@ -1,7 +1,7 @@
 classdef circleDomain < Domain
         
     properties
-        radius
+        radius (1,1) {mustBeNumeric} = 2
     end  
     
     methods

@@ -1,15 +1,15 @@
 classdef polygonDomain < Domain
     
     properties
-        radius = 2 
-        sides = 4
+        radius (1,1) {mustBeNumeric}
+        sides (1,1) {mustBeIntegerGreaterThan2} = 3
     end
     
     methods
         function obj = polygonDomain(args)
             arguments
                 args.radius (1,1) {mustBeNumeric} = 2;
-                args.sides (1,1) {mustBeInteger} = 2;
+                args.sides (1,1) {mustBeIntegerGreaterThan2} = 3;
             end
             
             obj.radius = args.radius;

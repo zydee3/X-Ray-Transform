@@ -3,12 +3,12 @@ classdef RiemannSurface
     %various ODE solvers.
     
     properties
-        domain
-        metric
+        domain (1,1) {Domain.mustBeDomain} = circleDomain()
+        metric (1,1) {Metric.mustBeMetric} = euclidMetric()
         
-        stepType
-        stepSize
-        geoDur
+        stepType (1,:) {mustBeText} = 'RK4'
+        stepSize (1,1) {mustBeNumeric} = 0.01
+        geoDur (1,1) {mustBeNumeric} = 100
     end
     
     
@@ -50,8 +50,7 @@ classdef RiemannSurface
         
         function [betaO,alphaO] = geodesicEnd(obj, X,Y,Th)
             % Formerly known as XYThtoBA, code transfered into geodesicFoot
-            
-
+            [betaO,alphaO] = obj.geodesicFoot(X,Y,Th + pi);
         end    
                
         
@@ -59,8 +58,6 @@ classdef RiemannSurface
             Th = Th + pi;
             
             dom = obj.domain;
-            origX = dom.originX;
-            origY = dom.originX;
 
             minR2 = dom.getMinRadius;
             minR2 = minR2*minR2;
@@ -94,13 +91,18 @@ classdef RiemannSurface
             X = X(noIPidx);   Y = Y(noIPidx); 
             xn = xn(noIPidx);   yn = yn(noIPidx); 
             
-            arcTin = atan2(Y-origY, X-origX);
-            arcTout = atan2(yn-origY, xn-origX);
+
+            origX = dom.originX;
+            origY = dom.originY;
             
-            valout = sqrt((X-origX).^2 + (Y-origY).^2) - dom.bdr(arcTout);
-            valin  = sqrt((xn-origX).^2 + (yn-origY).^2) - dom.bdr(arcTin);
-            
-            betaO(noIPidx) = arcTin;%(arcTin - arcTout) .* valout./(valout-valin) + arcTout;
+            valin = sqrt((X-origX).^2 + (Y-origY).^2);
+            valout  = sqrt((xn-origX).^2 + (yn-origY).^2);
+            ideal = dom.bdr( (atan2(Y - origY, X - origX) + atan2(yn - origY, xn - origX)) *0.5 ); % slerp
+            t = (ideal-valin)./(valout-valin);
+            X = (xn - X) .* t + X;
+            Y = (yn - Y) .* t + Y;
+
+            betaO(noIPidx) = atan2(Y - origY, X - origX);
             
             % compute alpha
             alphaO(noIPidx) = -dom.alNormal(betaO(noIPidx)) + atan2(Y-yn,X-xn) + pi;
@@ -133,15 +135,16 @@ classdef RiemannSurface
             
             for i = 1:length(S) % loop over lengths in order
                 
-                sD = 0;
+                sD = 1;
                 
                 while spart < S(i)
-                    spart = spart + sD;
                     sD = obj.arcLengthStep(betapart, h);
+                    spart = spart + sD;
                     betapart = betapart + h;
                 end
-                betaO(i) = betapart;
-                
+                % lin interpolate result (removes some artifacting)
+                betaO(i) = betapart + h * (S(i)-spart+sD)./sD - h;
+                                
                 %spart = S(i);
             end    
             
@@ -171,11 +174,11 @@ classdef RiemannSurface
                 sD = 0;
                 
                 while betapart < Beta(i)
-                    spart = spart + sD;
                     sD = obj.arcLengthStep(betapart, h);
                     betapart = betapart + h;
+                    spart = spart + sD;
                 end
-                sO(i) = spart;
+                sO(i) = spart + sD .*(Beta(i)-betapart + h)./h - sD;
                 
             end    
             
@@ -199,8 +202,15 @@ classdef RiemannSurface
             %   All geodesic functions use stepType, stepSize, and geoDur
             %   to determine the method that the geodesic travels.
             
+            arguments
+                obj
+                X {mustBeNumeric}
+                Y {mustBeNumeric}
+                Th {mustBeNumeric}
+            end
             
             % Reshape inputs
+            tsze = size(X);
             X = X(:);   Y = Y(:);   Th = Th(:);
             
             dom = obj.domain;
@@ -246,17 +256,24 @@ classdef RiemannSurface
             xO = xO(:, 1:t); yO = yO(:, 1:t); 
             thO = thO(:, 1:t); 
             
-            sze = size(xO);
-            sze = [size(X),sze(end)];
-            
-            xO = reshape(xO,sze); % reshape to agree with inputs
-            yO = reshape(yO,sze);
-            thO = reshape(thO,sze);
+            xO = geoReshape(xO,tsze); % reshape to agree with inputs
+            yO = geoReshape(yO,tsze);
+            thO = geoReshape(thO,tsze);
         end    
         
         
         function [xO,yO,thO, aO,bO] = geodesicJacobiAB(obj,X,Y,Th)
+
+            arguments
+                obj
+                X {mustBeNumeric}
+                Y {mustBeNumeric}
+                Th {mustBeNumeric}
+            end
+
             % Reshape inputs
+            tsze = size(X);
+
             X = X(:);   Y = Y(:);   Th = Th(:);
             
             dom = obj.domain;
@@ -312,14 +329,12 @@ classdef RiemannSurface
             aO = aO(:, 1:t); bO = bO(:, 1:t); 
             
             % reshape to agree with inputs
-            sze = size(xO);
-            sze = [size(X),sze(end)];
             
-            xO = reshape(xO,sze);
-            yO = reshape(yO,sze);
-            thO = reshape(thO,sze);
-            aO = reshape(aO,sze);
-            bO = reshape(bO,sze);
+            xO = geoReshape(xO,tsze);
+            yO = geoReshape(yO,tsze);
+            thO = geoReshape(thO,tsze);
+            aO = geoReshape(aO,tsze);
+            bO = geoReshape(bO,tsze);
             
         end
         
@@ -414,12 +429,12 @@ classdef RiemannSurface
             end
 
             
-            uO = uO * obj.stepSize; %reintroduce factored values
+            %reintroduce factored values
             switch obj.stepType
                 case 'IE'
-                    uO = uO/2;
+                    uO = uO/2* obj.stepSize;
                 case 'RK4'
-                    uO = uO/6;    
+                    uO = uO/6* obj.stepSize;    
             end    
             
             
@@ -444,7 +459,7 @@ classdef RiemannSurface
             
             for (i = 1:geosPer)
                 [beta,alpha] = obj.geodesicFoot(X(IPidx),Y(IPidx),ths(i)*os);
-                fO(IPidx) = fO(IPidx) + xray(mod(beta,2*pi),mod(alpha+pi/2,pi)-pi/2);
+                fO(IPidx) = fO(IPidx) + xray(mod(beta,2*pi),mod(alpha+pi,2*pi)-pi);
             end    
             
             fO = fO * 2*pi/geosPer;
@@ -454,6 +469,13 @@ classdef RiemannSurface
         
         function [xO,yO] = findConjugates(obj, X,Y,Th)
             %FINDCONUGATES Identifies conjugate points characterized by given geodesics
+
+            arguments
+                obj
+                X {mustBeNumeric}
+                Y {mustBeNumeric}
+                Th {mustBeNumeric}
+            end
             
             dom = obj.domain;
 
@@ -500,25 +522,6 @@ classdef RiemannSurface
         end  
        
        
-        function [sO] = arcLength(obj, beta0,beta1, stepSize)
-            % not properly vectorized*****
-            
-            h = stepSize; % perhaps replace this with obj.stepSize
-            
-            sO = 0;   sD = 0;
-            
-            % step from beta0 until beta1 is reached
-                
-            while (beta0 < beta1)
-                sO = sO + sD;
-                sD = obj.arcLengthStep(beta0, h);
-                beta0 = beta0 + h;
-            end    
-            
-            % lin interpolate the last value
-            sO = sO + sD .*(beta1-beta0+h)./(h);
-        end 
-        
         
 %--------------------------------------------------------------------------
 %%                                Ploters
@@ -529,14 +532,22 @@ classdef RiemannSurface
             %obj.geodesic.
             %   This method is to be used in tandom with obj.plot.
             
+            arguments
+                obj
+                X {mustBeNumeric} = []
+                Y {mustBeNumeric} = []
+                Th {mustBeNumeric} = []
+            end
+
+
             % reshape for plotting
             X = X(:);   Y = Y(:);   Th = Th(:);
             
             [xO,yO,~] = obj.geodesic(X,Y,Th);
             
             % transpose for plotting
-            xO = xO(:,:)';   yO = yO(:,:)';
-            plot(xO,yO,'r')
+            xO = geoDeshape(xO)';   yO = geoDeshape(yO)';
+            plot(xO,yO,'r');
         end  
         
         
@@ -545,6 +556,11 @@ classdef RiemannSurface
             %obj.plotGeo.
             %   This method is to be used in tandom with obj.plot.
             
+            arguments
+                obj
+                beta (1,1) {mustBeNumeric} = 0
+            end
+
             dom = obj.domain;
             ra = dom.bdr(beta - dom.theta);
             x = cos(beta) * ra + dom.originX;
@@ -570,6 +586,12 @@ classdef RiemannSurface
             %using obj.plotGeo.
             %   This method is to be used in tandom with obj.plot.
             
+            arguments
+                obj
+                x (1,1) {mustBeNumeric} = domain.originX
+                y (1,1) {mustBeNumeric} = domain.originY
+            end
+
             plot(x,y,'r*')
             holdBool = ishold;
             hold on;
@@ -593,6 +615,11 @@ classdef RiemannSurface
             %   Geodesics are all initially parallel, th controls their direction.
             %   This method is to be used in tandom with obj.plot.
             
+            arguments
+                obj
+                th (1,1) {mustBeNumeric} = 0
+            end
+
             off = linspace(0,2*pi, 100);
             dom = obj.domain;
             ra = dom.bdr(off - dom.theta);
@@ -616,6 +643,12 @@ classdef RiemannSurface
             %   Geodesics initially point relative to the direction of the 
             %   inner normal of the domain, th controls their direction.
             %   This method is to be used in tandom with obj.plot.
+
+            arguments
+                obj
+                th (1,1) {mustBeNumeric} = 0
+            end
+
             plot(x,y,'r*')
             holdBool = ishold;
             hold on;
@@ -637,6 +670,12 @@ classdef RiemannSurface
         
         function figureJacobiRadiate(obj, x,y)
             
+            arguments
+                obj
+                x (1,1) {mustBeNumeric} = domain.originX
+                y (1,1) {mustBeNumeric} = domain.originY
+            end
+
             count = 40;
             dom = obj.domain;
             [minB,maxB] = dom.getBoundingBox;
@@ -650,14 +689,16 @@ classdef RiemannSurface
             
             
             [xO,yO,~, aO,bO] = obj.geodesicJacobiAB(X,Y,Th);
-            
+            xO = geoDeshape(xO)';   yO = geoDeshape(yO)';
+            aO = geoDeshape(aO)';   bO = geoDeshape(bO)';
+
             figure;
             subplot(1,2,1); axis equal; hold on;
                 dom.plotAlNormal;
                 for i= 1:count-1
-                    s = pcolor(repmat(xO(i,:)',1,2),...
-                             repmat(yO(i,:)',1,2),...
-                             repmat(aO(i,:)',1,2));
+                    s = pcolor(repmat(xO(:,i),1,2),...
+                               repmat(yO(:,i),1,2),...
+                               repmat(aO(:,i),1,2));
                    s.FaceAlpha=0; s.EdgeColor='interp'; s.LineWidth = 2;
                 end
                 title('geodesic flow a') 
@@ -667,9 +708,9 @@ classdef RiemannSurface
             subplot(1,2,2); axis equal; hold on;
                 dom.plotAlNormal;
                 for i= 1:count-1
-                    s = pcolor(repmat(xO(i,:)',1,2),...
-                             repmat(yO(i,:)',1,2),...
-                             repmat(bO(i,:)',1,2));
+                    s = pcolor(repmat(xO(:,i),1,2),...
+                               repmat(yO(:,i),1,2),...
+                               repmat(bO(:,i),1,2));
                    s.FaceAlpha=0; s.EdgeColor='interp'; s.LineWidth = 2;
                 end
                 title('geodesic flow b') 
@@ -685,6 +726,13 @@ classdef RiemannSurface
             %   inner normal of the domain, th controls their direction.
             %   This method is to be used in tandom with obj.plot.
             
+            arguments
+                obj
+                X {mustBeNumeric} = []
+                Y {mustBeNumeric} = []
+                Th {mustBeNumeric} = []
+            end
+
             [cX,cY] = obj.findConjugates(X,Y,Th);
             
             plot(cX,cY,'g*','MarkerSize',5);
@@ -953,24 +1001,24 @@ classdef RiemannSurface
                     [lg,dxlg,dylg] = met.metricVals(X, Y);
                     cth = cos(Th); sth = sin(Th);
 
-                    elg = exp(-.5*lg);
+                    elg1 = exp(-.5*lg);
                     
-                    xO = elg.*cth;
-                    yO = elg.*sth;
-                    thO = .5*elg.*(cth.*dylg - sth.*dxlg);
+                    xO = elg1.*cth;
+                    yO = elg1.*sth;
+                    thO = .5*elg1.*(cth.*dylg - sth.*dxlg);
                                                             
                     % corrector
                     [lg,dxlg,dylg] = met.metricVals(X+h*xO, Y+h*yO);
                     cth = cos(Th+h*thO); sth = sin(Th+h*thO);
 
-                    elg = exp(-.5*lg);
+                    elg2 = exp(-.5*lg);
                     
-                    uO = U + ((integrandU(X,Y).*cth + integrandV(X,Y).*sth) +...
-                              (integrandU(X+h*xO, Y+h*yO).*cth + integrandV(X+h*xO, Y+h*yO).*sth) ); % multipy by h/2, 
+                    uO = U + ((integrandU(X,Y).*cth + integrandV(X,Y).*sth) .* elg1 +...
+                              (integrandU(X+h*xO, Y+h*yO).*cth + integrandV(X+h*xO, Y+h*yO).*sth) .* elg2 ); % multipy by h/2, 
                     
-                    xO = X + hovr *    (xO  + elg.*cth);
-                    yO = Y + hovr *    (yO  + elg.*sth);
-                    thO = Th + hovr *  (thO + .5*elg.*(cth.*dylg - sth.*dxlg));   
+                    xO = X + hovr *    (xO  + elg2.*cth);
+                    yO = Y + hovr *    (yO  + elg2.*sth);
+                    thO = Th + hovr *  (thO + .5*elg2.*(cth.*dylg - sth.*dxlg));   
                                         
                 case 'RK4' % Runge-Kutta 4 ------------------------------------------------- I1
 
@@ -978,47 +1026,47 @@ classdef RiemannSurface
                     [lg,dxlg,dylg] = met.metricVals(X, Y);
                     cth = cos(Th); sth = sin(Th);
 
-                    elg = exp(-.5*lg);
+                    elg1 = exp(-.5*lg);
                     
-                    k1x = elg.*cth;
-                    k1y = elg.*sth;
-                    k1th = .5*elg.*(cth.*dylg - sth.*dxlg);
+                    k1x = elg1.*cth;
+                    k1y = elg1.*sth;
+                    k1th = .5*elg1.*(cth.*dylg - sth.*dxlg);
                     
                     % second slope
                     [lg,dxlg,dylg] = met.metricVals(X+hovr*k1x, Y+hovr*k1y);
                     cth = cos(Th+h/2*k1th); sth = sin(Th+h/2*k1th);
 
-                    elg = exp(-.5*lg);
+                    elg2 = exp(-.5*lg);
                     
-                    k2x = elg.*cth;
-                    k2y = elg.*sth;
-                    k2th = .5*elg.*(cth.*dylg - sth.*dxlg);
+                    k2x = elg2.*cth;
+                    k2y = elg2.*sth;
+                    k2th = .5*elg2.*(cth.*dylg - sth.*dxlg);
                     
                     % third slope
                     [lg,dxlg,dylg] = met.metricVals(X+hovr*k2x, Y+hovr*k2y);
                     cth = cos(Th+h/2*k2th); sth = sin(Th+h/2*k2th);
 
-                    elg = exp(-.5*lg);
+                    elg3 = exp(-.5*lg);
                     
-                    xO = elg.*cth;
-                    yO = elg.*sth;
-                    thO = .5*elg.*(cth.*dylg - sth.*dxlg);
+                    xO = elg3.*cth;
+                    yO = elg3.*sth;
+                    thO = .5*elg3.*(cth.*dylg - sth.*dxlg);
 
                     % fourth slope
                     [lg,dxlg,dylg] = met.metricVals(X+h*xO, Y+h*yO);
                     cth = cos(Th+h*thO); sth = sin(Th+h*thO);
 
                     hovr = h/6;
-                    elg = exp(-.5*lg);
+                    elg4 = exp(-.5*lg);
                    
-                    uO = U + ((integrandU(X, Y).*cth + integrandV(X, Y).*sth) +... 
-                            2*(integrandU(X + h/2*k1x, Y + h/2*k1y).*cth + integrandV(X + h/2*k1x, Y + h/2*k1y).*sth) +...
-                            2*(integrandU(X + h/2*k2x, Y + h/2*k2y).*cth + integrandV(X + h/2*k2x, Y + h/2*k2y).*sth) +...
-                              (integrandU(X + h*xO, Y + h*yO).*cth + integrandV(X + h*xO, Y + h*yO).*sth)  ); % multipy by h/6  
+                    uO = U + ((integrandU(X, Y).*cth + integrandV(X, Y).*sth) .* elg1 +... 
+                            2*(integrandU(X + h/2*k1x, Y + h/2*k1y).*cth + integrandV(X + h/2*k1x, Y + h/2*k1y).*sth) .* elg2 +...
+                            2*(integrandU(X + h/2*k2x, Y + h/2*k2y).*cth + integrandV(X + h/2*k2x, Y + h/2*k2y).*sth) .* elg3 +...
+                              (integrandU(X + h*xO, Y + h*yO).*cth + integrandV(X + h*xO, Y + h*yO).*sth) .* elg4  ); % multipy by h/6  
                     
-                    xO = X + hovr * (k1x + 2*(k2x +xO) + elg.*cth);
-                    yO = Y + hovr * (k1y + 2*(k2y + yO) + elg.*sth);
-                    thO = Th + hovr * (k1th + 2*(k2th + thO) + 0.5*elg.*(cth.*dylg - sth.*dxlg));                  
+                    xO = X + hovr * (k1x + 2*(k2x +xO) + elg4.*cth);
+                    yO = Y + hovr * (k1y + 2*(k2y + yO) + elg4.*sth);
+                    thO = Th + hovr * (k1th + 2*(k2th + thO) + 0.5*elg4.*(cth.*dylg - sth.*dxlg));                  
                     
                 otherwise 
                     error('wrong timestepper')

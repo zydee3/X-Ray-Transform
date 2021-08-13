@@ -144,34 +144,26 @@ classdef Metric
                                lbound(2):reso:ubound(2));
             
             Z = exp(metricVals(obj,X0,Y0)*0.5); 
-            m = mean(Z(1:5:end));
-            s = sqrt(std(Z(1:5:end))); % TODO should implement percentiles or something
-            
-            Z = clamp(m-s,Z,m+s); % clamp output % !! TODO make a parameter for this !!
             out = contour(X0,Y0,Z,20);
         end
                 
         
-        function figureALL(obj,X,Y)
+        function figureALL(obj, lbound,ubound, reso)
             %PLOTALL A convinient function that creates a new figure and 
             %plots lg, dxlg, dylg and curv. 
             %   Intended to test that everything is working as it should.
             
-            [X0,Y0] = meshgrid(-5:0.2:5);
-            if (nargin == 3 && (isvector(X) && isvector(Y))),
-                [X0,Y0] = meshgrid(X,Y);
-            elseif (nargin ~= 1), warning("Incorrect input arguments, plotting over generic domain.");
+            arguments
+                obj
+                lbound (1,2) {mustBeNumeric} = [-5,-5]
+                ubound (1,2) {mustBeNumeric} = [5,5]
+                reso (1,1){mustBeNumeric} = 0.2
             end
+            [X0,Y0] = meshgrid(lbound(1):reso:ubound(1),...
+                               lbound(2):reso:ubound(2));
             
             [lgt,dxlgt,dylgt,curvt] = metricValsCurv(obj,X0,Y0);
-            
-            %%{
-            m = -10; M = 10;
-            lgt = clamp(m,lgt,M); % clamp output
-            dxlgt = clamp(m,dxlgt,M); % !! TODO make a parameter for this !!
-            dylgt = clamp(m,dylgt,M);
-            curvt = clamp(m,curvt,M);
-            %%}
+
             
             figure;
             subplot(2,2,1);
@@ -201,68 +193,10 @@ classdef Metric
            %MUSTBEMETRIC Errors if the passed object is not an instance of 
            %Metric or of a subclass of Metric.
            if (~isa(obj,'Metric'))
-               error("Value must be a Metric");
+               error("Value must be a Metric.");
            end
        end    
-              
-       
-       function obj = build(varargin) %TODO: Delete this grabage.
-           obj = Metric();
-            if (nargin == 0), return; 
-            
-            elseif (nargin == 1)
-                varargin = varargin{1};
-                if (isa(varargin,'struct'))
-                    if (isfield(varargin, 'type') && isfield(varargin,'args')) % check if this is a parsed struct
-                        if (~strcmp(varargin.type, 'default'))
-                            name = lower(varargin.type) + "Metric"; 
-                            if (exist(name,'class') == 8)
-
-                                argNames = fieldnames(varargin.args);
-                                celin = cell(1,length(argNames) * 2+1);
-                                celin{1} = name;
-                                for i = 1:numel(argNames)
-                                    celin{i+1} = argNames{i};
-                                    celin{i+2} = varargin.args.(argNames{i});
-                                end
-
-                                obj = feval(celin{:});
-
-                            end
-                        else    
-                            obj.lg   = varargin.lg;
-                            obj.dxlg = varargin.dxlg;
-                            obj.dylg = varargin.dylg;
-                            obj.curv = varargin.curv;
-                        end
-                        return;
-                    end
-
-                end
-            elseif (nargin > 1) 
-                  
-            end
-            p = inputParser; % it parses inputs
-            p.KeepUnmatched = true;
-            p.PartialMatching = false;
-            p.FunctionName = 'Metric.build';
-
-            isAString = @(in) isstring(in) || ischar(in);
-            isA2Handle = @(in) isa(in,'function_handle') && nargin(in) == 2;
-
-            addOptional(p,'type','default',isAString);
-
-            if (isa(varargin,'cell'))
-                parse(p,varargin{:})
-            else
-                parse(p,varargin)
-            end    
-            r = p.Results;
-            stin.type = r.type;
-            stin.args = p.Unmatched;
-
-            obj = Metric.build(stin);
-        end    
+             
     end  
     
     

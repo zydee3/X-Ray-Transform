@@ -8,7 +8,7 @@ classdef gaussMetric < Metric
     end
     
     methods
-        function obj = constcurveMetric(args)
+        function obj = gaussMetric(args)
             arguments
                 args.weights (1,:) {mustBeNumeric} = 1
                 args.widths (1,:) {mustBeNumeric} = 1
