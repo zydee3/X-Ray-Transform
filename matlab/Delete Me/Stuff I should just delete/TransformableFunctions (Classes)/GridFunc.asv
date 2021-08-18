@@ -1,0 +1,59 @@
+classdef GridFunc < TFunc
+     
+    properties
+        interpType 
+    end
+    
+    methods
+        function obj = GridFunc(values, args)  
+            %INMAP Constructs an instance of TFunc
+            arguments
+                values (1,1) = @(x,y) zeros(size(x));   
+                args.offset (1,2) {mustBeNumeric} = [0,0]
+                args.scale (1,2) {mustBeNumeric} = [1,1]
+                args.rotation (1,1) {mustBeNumeric} = 0
+            end
+            
+            obj@TFunc(values, offset=args.offset, scale=args.scale, rotation=args.rotation); 
+        end
+    end
+    
+    
+    methods (Access = 'protected')
+        
+        function out = evaluate(obj, X,Y)
+            %EVAL Evaluates the function at an array of points (X,Y).
+            
+            tmat = obj.tmatrix;
+
+            x = X*tmat(1) + Y*tmat(2) + tmat(3); % matrix multiplication (when handled correctly, only these 6 indicies are necessarily unknown, and the resulting vector will always have a 1 in the third place)
+            y = X*tmat(4) + Y*tmat(5) + tmat(6);
+            % z = ones(size(X)) is what would be written here if we cared abt this index 
+
+            v = obj.values;
+            s = size(v);
+            o = (s+1)*0.5;
+            out = lininterp2(v, clamp(1, x + o(1), s(2)),... % maybe include other edge cases using mod/force zero
+                                clamp(1, y + o(2), s(1)));
+
+        end
+        
+    end    
+       
+end    
+
+
+% image re-sample functions
+%   x taken from [1,length(vals)], y from [1,height(vals)]
+
+function out = nearest2(vals,x,y)
+    s = size(vals);
+    out = vals(sub2ind(s,round(y),round(x)));
+end
+
+function out = lininterp2(vals, x,y) 
+    s = size(vals);
+    vfy = vals( sub2ind(s,ceil(y),floor(x))) .* (y-floor(y))  +  vals(sub2ind(s,floor(y),floor(x))) .* (1-y+floor(y));
+    out = vals( sub2ind(s,ceil(y), ceil(x))) .* (y-floor(y))  +  vals(sub2ind(s,floor(y), ceil(x))) .* (1-y+floor(y));
+    out = (out-vfy) .* (x-floor(x)) + vfy;
+end
