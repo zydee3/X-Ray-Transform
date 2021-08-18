@@ -112,10 +112,10 @@ class Metric:
         result = (zeros(0), zeros(0), zeros(0), zeros(0))
 
         if self.metric_type == type_metric_constant_curvature:
-            result = parallel_compute_values_hyperbolic(self.radius_squared, x_values, y_values)
-        if self.metric_type == type_euclidean:
-            result = parallel_compute_values_euclidean(x_values.size)
-        if self.metric_type == type_polynomial:
+            result = parallel_compute_values_constant_curvature(self.radius_squared, x_values, y_values)
+        if self.metric_type == type_metric_gaussian:
+            result = parallel_compute_values_gaussian(x_values, y_values, self.widths, self.weights, self.center_x, self.center_y)
+        if self.metric_type == type_metric_polynomial:
             result = parallel_compute_values_polynomial(x_values, y_values, self.coefficients)
 
         self.log_g_of_t = result[0]

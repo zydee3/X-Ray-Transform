@@ -66,8 +66,8 @@ def parallel_compute_values_ellipse(minor_radius, major_radius, theta_offset, th
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def get_bounding_box(theta_offset):
-    radius_samples = compute_values(linspace(0, pi * 2, 1000) - theta_offset)
+def get_bounding_box(theta_offset, radius_samples):
+    # radius_samples = compute_values(linspace(0, pi * 2, 1000) - theta_offset)
     euclidean_samples_x = cos(linspace(0, pi * 2, 1000)) * radius_samples
     euclidean_samples_y = sin(linspace(0, pi * 2, 1000)) * radius_samples
 
@@ -87,7 +87,7 @@ def is_inside(x_offset, y_offset, theta_offset, compute_boundary, x, y, min_radi
     inside_points = xy_squared <= min_radius_squared
 
     if not any(inside_points):
-        outside_index = find(not inside_points)
+        outside_index = where(not inside_points)
         radius = compute_boundary(arctan2(y_values(outside_index), x_values(outside_index)) - theta_offset)
         inside_points[outside_index] = xy_squared(outside_index) <= square(radius)
 
