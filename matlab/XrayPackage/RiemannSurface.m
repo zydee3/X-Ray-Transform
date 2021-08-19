@@ -117,7 +117,7 @@ classdef RiemannSurface
         function [betaO,alphaO] = geodesicEnd(obj, X,Y,Th)
             % Formerly known as XYThtoBA, code transfered into geodesicFoot
             [betaO,alphaO] = obj.geodesicFoot(X,Y,Th + pi);
-            alphaO = mod(alphaO,2*pi)-pi;
+            alphaO = mod(alphaO-pi/2,2*pi)-pi/2;
         end    
                 
         function [betaO,alphaO] = geodesicFoot(obj, X,Y,Th)
@@ -171,7 +171,7 @@ classdef RiemannSurface
             
             % compute alpha
             alphaO(noIPidx) = -dom.alNormal(betaO(noIPidx)) + atan2(Y-yn,X-xn) + pi;
-            
+           
         end            
                
         function [betaO,alphaO] = scatteringRelation(obj, Beta,Alpha)
@@ -393,7 +393,7 @@ classdef RiemannSurface
 %%                               XRay                                      
 %--------------------------------------------------------------------------     
         
-        function [uO] = I0(obj, Beta,Alpha, integrand)
+        function [uDataO, betaScattO,alphaScattO] = I0(obj, Beta,Alpha, integrand)
             %I0 Solves for the Xray transfrom of the given integrand along
             %the geodesics described by Beta and Alpha.
             %   The I0 function is associated with obj.geoStepI0.
@@ -412,7 +412,7 @@ classdef RiemannSurface
             y = sin(Beta) .* ra + dom.originY;
 
             th = pi + Alpha + dom.alNormal(Beta) + dom.theta;
-            uO = zeros(size(Beta));
+            uDataO = zeros(size(Beta));
 
             t = 1;
 
@@ -422,8 +422,8 @@ classdef RiemannSurface
             while (t ~= NMAX) && (~isempty(IPidx))
 
                 % move the inside points forward
-                [x(IPidx), y(IPidx), th(IPidx), uO(IPidx)] =  ...
-                    obj.geoStepI0(x(IPidx),y(IPidx),th(IPidx), uO(IPidx), integrand);
+                [x(IPidx), y(IPidx), th(IPidx), uDataO(IPidx)] =  ...
+                    obj.geoStepI0(x(IPidx),y(IPidx),th(IPidx), uDataO(IPidx), integrand);
 
                 % march time forward
                 t = t+1;    
@@ -432,18 +432,18 @@ classdef RiemannSurface
             end
 
             
-            uO = uO * obj.stepSize; %reintroduce factored values
+            uDataO = uDataO * obj.stepSize; %reintroduce factored values
             switch obj.stepType
                 case 'IE'
-                    uO = uO/2;
+                    uDataO = uDataO/2;
                 case 'RK4'
-                    uO = uO/6;    
+                    uDataO = uDataO/6;    
             end    
             
             
         end    
                 
-        function [uO] = I1(obj, Beta,Alpha, integrandU,integrandV)
+        function [uDataO] = I1(obj, Beta,Alpha, integrandU,integrandV)
             %I1 Solves for the Xray transfrom of the given integrand along
             %the geodesics described by Beta and Alpha.
             %   The I0 function is associated with obj.geoStepI0.
@@ -462,7 +462,7 @@ classdef RiemannSurface
             y = sin(Beta) .* ra + dom.originY;
 
             th = pi + Alpha + dom.alNormal(Beta) + dom.theta;
-            uO = zeros(size(Beta));
+            uDataO = zeros(size(Beta));
 
             t = 1;
 
@@ -472,8 +472,8 @@ classdef RiemannSurface
             while (t ~= NMAX) && (~isempty(IPidx))
 
                 % move the inside points forward
-                [x(IPidx), y(IPidx), th(IPidx), uO(IPidx)] =  ...
-                    obj.geoStepI1(x(IPidx),y(IPidx),th(IPidx), uO(IPidx), integrandU,integrandV);
+                [x(IPidx), y(IPidx), th(IPidx), uDataO(IPidx)] =  ...
+                    obj.geoStepI1(x(IPidx),y(IPidx),th(IPidx), uDataO(IPidx), integrandU,integrandV);
 
                 % march time forward
                 t = t+1;    
@@ -485,19 +485,19 @@ classdef RiemannSurface
             %reintroduce factored values
             switch obj.stepType
                 case 'IE'
-                    uO = uO/2* obj.stepSize;
+                    uDataO = uDataO/2* obj.stepSize;
                 case 'RK4'
-                    uO = uO/6* obj.stepSize;    
+                    uDataO = uDataO/6* obj.stepSize;    
             end    
             
             
         end   
                    
-        function [fO] = I0star(obj, xray, X,Y, geosPer)
+        function [fDataO] = I0star(obj, xray, X,Y, geosPer)
             % Xray must be a 2 parameter function defined on [0,2pi]x[-pi,pi].
             % 
             sze = size(X);
-            fO = zeros(sze);
+            fDataO = zeros(sze);
             
             dom = obj.domain;
             minR2 = dom.getMinRadius;
@@ -511,195 +511,109 @@ classdef RiemannSurface
             
             for (i = 1:geosPer)
                 [beta,alpha] = obj.geodesicFoot(X(IPidx),Y(IPidx),ths(i)*os);
-                fO(IPidx) = fO(IPidx) + xray(mod(beta,2*pi),mod(alpha+pi,2*pi)-pi);
+                fDataO(IPidx) = fDataO(IPidx) + xray(mod(beta,2*pi),mod(alpha+pi,2*pi)-pi);
             end    
             
-            fO = fO * 2*pi/geosPer;
+            fDataO = fDataO * 2*pi/geosPer;
             
         end
         
-     
-        
-        function [fDataO, betaO,alphaO] = geoA_interp(obj, Beta,Alpha,FData, method,sign)
-            [BetaScatt,AlphaScatt] = obj.scatteringRelation(Beta,Alpha);
-            [fDataO, betaO,alphaO] = obj.geoA_precomp_interp(Beta,Alpha,FData, BetaScatt,AlphaScatt, method,sign);
-        end
-        
-        function [fDataO, betaO,alphaO] = geoA_precomp_interp(~, Beta,Alpha,FData, BetaScatt,AlphaScatt, method, sign)
+        function [fDataO] = I0perpstar(obj, xray, X,Y, geosPer)
+
+            sze = size(X);
             
-            % BetaScatt,AlphaScatt must have the same size as Beta,Alpha,FData
-            % Values are expected to be in NDGRID format for gridded
-            % interpolation (importantly, same beta occupies same row)
+            dom = obj.domain;
+            minR2 = dom.getMinRadius;
+            minR2 = minR2*minR2;
             
-            % outputs are shaped in preperation for hilbert transform
+            met = obj.metric;
             
-            % methods: 
-            %   gridded_nearest     - handles Beta,Alpha,FData with griddedinterpolant nearest method
-            %   gridded_linear      - handles Beta,Alpha,FData with griddedinterpolant linear method
-            %   scattered_nearest   - handles Beta,Alpha,FData with scatteredinterpolant nearest method
-            %   scattered_linear    - handles Beta,Alpha,FData with scatteredinterpolant linear method
+            IPidx = find(dom.isInsideR2(X,Y,minR2));
+            os = ones(size(IPidx));
             
-            switch method
-                case {'gridded_nearest','gridded_linear'}
-                    f = griddedInterpolant(Beta,Alpha,FData); % defaults to linear
-                    if (strcmp(method,'gridded_nearest'))
-                        f.Method = 'nearest'; 
-                    end    
-                    
-                case {'scattered_nearest','scattered_linear'}    
-                    f = scatteredInterpolant(Beta,Alpha,FData); % defaults to linear
-                    if (strcmp(method,'scattered_nearest'))
-                        f.Method = 'nearest'; 
-                    end  
-                    
-                otherwise    
-                    error('wrong method')
-            end
+            ths = linspace(0,2*pi,geosPer+1);
+            ths = ths(1:end-1);
+            sth = sin(ths);  cth = cos(ths);
             
-            
-            po2 = pi/2;
-            fDataO = [FData, sign*f(mod(BetaScatt,2*pi), mod(AlphaScatt+po2,pi)-po2)];
-            betaO = [Beta, Beta];
-            alphaO = [Alpha, AlphaScatt]; % alpha on [0,2pi]
-        end      
-        
-        function [fDataO, betaO,alphaO] = geoA_simple(~, Beta,Alpha,FData, sign)
-            
-            % For the case that FData(Beta,Alpha) = -FData(BetaScatt,AlphaScatt)
-            % Values are expected so that same betas share same row
-            
-            fDataO = [FData, sign*FData];
-            betaO = [Beta, Beta];
-            alphaO = [Alpha, Alpha+pi]; % alpha on a weird interval
-        end      
-        
-        function [fO] = geoA_simplefunc(~, F, sign)
-            
-            % For the case that -FData(Beta,Alpha) = FData(BetaScatt,AlphaScatt)
-            % F is handled as an anonymous function
+            u = zeros(sze);   v = zeros(sze);
                         
-            fO = @Af;
+            for (k = 1:geosPer)
+                [beta,alpha] = obj.geodesicFoot(X(IPidx),Y(IPidx),ths(k)*os);
+                
+                val = xray(mod(beta,2*pi),mod(alpha+pi/2,pi)-pi/2);
+                
+                u(IPidx) = u(IPidx) - val * sth(k);
+                v(IPidx) = v(IPidx) + val * cth(k);
+            end    
             
-            function out = Af(Beta,Alpha)
-                
-                Beta = mod(Beta,2*pi);
-                Alpha = mod(Alpha+pi,2*pi)-pi;
-                
-                bool = abs(Alpha)>pi/2;
-                indS = bool;
-                ind = ~bool;
-                
-                out = zeros(size(Alpha));
-                
-                out(indS) = sign*F(Beta,Alpha);
-                out(ind) = F(Beta,Alpha);
-               
+            % multiplication by g^{1/2}
+            lgt = met.metricVals(X,Y);
+            u = u .* exp(0.5*lgt);
+            v = v .* exp(0.5*lgt);
+
+            % divergence
+            val = divergence(Y,X,v,u); % !!!!!TODO!!!!! figure out why divergence(X,Y,u,v) doesnt work
+
+            % multiplication by g^{-1} and integral over angles
+            fDataO = val .* exp(-lgt) * 2*pi/geosPer; 
+            
+            % crop image TODO remove this or do this differently somewhere else
+            IPidx = ~dom.isInsideR2(X*1.0526,Y*1.0526,minR2);
+            fDataO(IPidx) = 0;
+        end
+        
+        
+        function [fDataO, betaO,alphaO] = geoA_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt, sign)
+            po2 = pi/2;
+            
+            bscatt = mod(BetaScatt, 2*pi);
+            ascatt = mod(AlphaScatt+po2,pi)-po2;
+            
+            fDataO = [func(Beta,Alpha), sign*func(bscatt, ascatt)];
+            betaO = [Beta, Beta];
+            alphaO = [Alpha, ascatt+pi];
+        end      
+      
+        function [fDataO] = geoHilbert(obj, Beta,Alpha,func, nal2)
+            % F is handled as an anonymous function
+            % for each input beta, descretizes the function along alpha in order to perform FFT
+            % output is interpolated samples of fft output
+            
+            sze = size(Beta);
+            ubt = unique(Beta(:)');
+            nbt = length(ubt);
+            
+            al = linspace(-pi/2,3*pi/2,nal2*2);
+            Alpha = mod(Alpha+pi/2,2*pi)-pi/2;
+            
+            fDataO = zeros(sze);
+            
+            H = 2*nal2*[-1j*ones(1,nal2), 1j*ones(1,nal2)];
+            
+            for bt = ubt
+                alind = (bt == Beta); 
+                 
+                fDataO(alind) = interp1(al, ifft(H .* fft( func(mod(ones(1,nal2*2)*bt,2*pi),al), nal2*2 ) ) /(nal2*2),...
+                                         Alpha(alind), 'linear');
             end
+            fDataO = real(fDataO);
+            %fDataO = func(Beta,Alpha);
+        end   
+        
+        function [fDataO, betaO,alphaO] = geoAstar_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt, sign)            
+            po2 = pi/2;
+            
+            bscatt = mod(BetaScatt, 2*pi);
+            ascatt = mod(-AlphaScatt+po2,2*pi)-po2; % !!!!!TODO!!!!! figure out why mod(AlphaScatt+po2,2*pi)-po2; doesnt work
+            
+            fDataO = func(Beta,Alpha) -sign*func(bscatt, ascatt); % !!!!!TODO!!!!! figure out why func(Beta,Alpha) +sign*func(bscatt, ascatt); doesnt work
+            betaO = Beta;
+            alphaO = Alpha;
         end  
         
- 
-        function fO = geoHilbert(obj, FData, m, bw) 
-            % it is assumed that FData is arranged so that same betas share same rows and that alphas are equispaced
-            % additionally, alpha is expected to be cyclically ordered wrt 
+        function [fDataO] = geoR_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt)
             
-            sze = size(FData);
-            nal = sze(2)/2;
-            nbt = sze(1);
-            
-            H = 2*nal*[zeros(nbt,1), -1j*ones(nbt,nal), 1j*ones(nbt,nal-1)];
-            
-            % filtering row by row
-            fO = ifft(H .* fft(FData), 2) /(2*nal);
-        end   
-        
-        function fO = geoHilbert_func(obj, F, nal)
-            % F is handled as an anonymous function
-            % descretizes the function along alpha in order to perform FFT
-            
-            fO = ifft(H .* fft(FData), 2) /(2*nal);
-            
-            function out = Af(Beta,Alpha)
-                Beta = mod(Beta,2*pi);
-                Alpha = mod(Alpha+pi,2*pi)-pi;
-                if (abs(Alpha)>pi/2)
-                    out = F(Beta,Alpha);
-                else
-                    out = sign*F(Beta,Alpha);
-                end    
-            end
-        end   
-        
-
-        function [fDataO, betaO,alphaO] = geoAstar_interp(obj, Beta,Alpha,FData, method,sign)
-            [BetaScatt,AlphaScatt] = obj.scatteringRelation(Beta,Alpha);
-            [fDataO, betaO,alphaO] = obj.geoAstar_precomp_interp(Beta,Alpha,FData, BetaScatt,AlphaScatt, method,sign);
-        end
-        
-        function [fDataO, betaO,alphaO] = geoAstar_precomp_interp(~, Beta,Alpha,FData, BetaScatt,AlphaScatt, method, sign)
-            
-            % BetaScatt,AlphaScatt must have the same size as Beta,Alpha,FData
-            % Values are expected to be outputs of geoHilbert
-                        
-            % methods: 
-            %   gridded_nearest     - handles Beta,Alpha,FData with griddedinterpolant nearest method
-            %   gridded_linear      - handles Beta,Alpha,FData with griddedinterpolant linear method
-            %   scattered_nearest   - handles Beta,Alpha,FData with scatteredinterpolant nearest method
-            %   scattered_linear    - handles Beta,Alpha,FData with scatteredinterpolant linear method
-            
-            nal = length(F)/2;
-            
-            switch method
-                case {'gridded_nearest','gridded_linear'}
-                    f = griddedInterpolant(Beta,Alpha,FData(:,nal+1:end)); % defaults to linear
-                    if (strcmp(method,'gridded_nearest'))
-                        f.Method = 'nearest'; 
-                    end    
-                    
-                case {'scattered_nearest','scattered_linear'}    
-                    f = scatteredInterpolant(Beta,Alpha,FData(:,nal+1:end)); % defaults to linear
-                    if (strcmp(method,'scattered_nearest'))
-                        f.Method = 'nearest'; 
-                    end  
-                    
-                otherwise    
-                    error('wrong method')
-            end
-            
-            fDataO = [FData(:,nal+1:end), + sign*f(BetaScatt(:,nal+1:end),AlphaScatt(:,nal+1:end))];
-            betaO = Beta(:,1:nal);
-            alphaO = Alpha(:,1:nal);
-        end      
-        
-        function [fDataO, betaO,alphaO] = geoAstar_simple(~, Beta,Alpha,FData, sign)
-            
-            % For the case that FData(Beta,Alpha) = -FData(BetaScatt,AlphaScatt)
-            % Values are expected so that same betas share same row
-            
-            sze = size(FData);
-            nal = sze(2)/2;
-            nbt = sze(1);
-            
-            fDataO = [FData(:,1:nal, sign*FData(:,nal+1:end];
-            betaO = Beta(:,1:nal);
-            alphaO = Alpha(:,1:nal); % alpha on a weird interval
-        end 
-        
-        function [fO] = geoAstar_simplefunc(~, F, sign)
-            
-            % For the case that FData(Beta,Alpha) = -FData(BetaScatt,AlphaScatt)
-            % F is handled as an anonymous function
-                        
-            fO = @Astarf;
-            
-            function out = Astarf(Beta,Alpha)
-                Beta = mod(Beta,2*pi);
-                
-                out = F(Beta,mod(Alpha+pi,2*pi)-pi) + sign*F(Beta,mod(Alpha,2*pi)-pi);
-                
-            end
-            
-        end          
-        
+        end    
         
 %--------------------------------------------------------------------------
 %%                              Ploters                                    
