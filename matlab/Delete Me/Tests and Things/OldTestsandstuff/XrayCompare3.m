@@ -33,8 +33,8 @@ params.th0 = 0;
 domain = build_boundary(params);
 metric = build_metric_negative(5);
 
-tic
+
     I0_2 = geoI0(domain, vals, B, A, 0.01, metric, 'RK4');
-toc
+
 
 %--------------------------------------------------------------------------
