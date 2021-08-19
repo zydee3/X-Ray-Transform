@@ -5,7 +5,7 @@ from x_ray_transform.constants import type_step_forward_euler, type_step_backwar
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_geo_step(step_type, metric, step_size, x_values, y_values, theta_values):
+def compute_geo_step(step_type, metric, step_size, x_values, y_values, theta_values):
     """
     Steps a geodesic forward in accordance to the metric and stepping method
 

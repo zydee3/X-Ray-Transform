@@ -3,9 +3,9 @@ from numba.experimental import jitclass
 from numpy import cos, sin, square, floor_divide, zeros, NAN
 from x_ray_transform.constants import type_step_forward_euler, type_step_backward_euler, type_step_runge_kutta_4
 from .domain import Domain
-from x_ray_transform.riemann_surface.meta.surface.geostep import parallel_compute_geo_step_backwards_euler
-from x_ray_transform.riemann_surface.meta.surface.geostep import parallel_compute_geo_step_forward_euler
-from x_ray_transform.riemann_surface.meta.surface.geostep import parallel_compute_geo_step_runge_kutta
+from x_ray_transform.riemann_surface.meta.surface.geostep import compute_geo_step_backwards_euler
+from x_ray_transform.riemann_surface.meta.surface.geostep import compute_geo_step_forward_euler
+from x_ray_transform.riemann_surface.meta.surface.geostep import compute_geo_step_runge_kutta
 from .metric import Metric
 
 
@@ -80,9 +80,9 @@ class Surface:
         to_alpha_beta
         self.metric.compute_values(x_values, y_values)
         if self.step_type == type_step_forward_euler:
-            return parallel_compute_geo_step_forward_euler(x_values, y_values, theta_values, self.step_size, self.metric.log_g_of_t, self.metric.dx_log_g_of_t, self.metric.dy_log_g_of_t)
+            return compute_geo_step_forward_euler(x_values, y_values, theta_values, self.step_size, self.metric.log_g_of_t, self.metric.dx_log_g_of_t, self.metric.dy_log_g_of_t)
         if self.step_type == type_step_backward_euler:
-            prediction = parallel_compute_geo_step_backwards_euler(x_values, y_values, theta_values, self.step_size, self.metric.log_g_of_t, self.metric.dx_log_g_of_t, self.metric.dy_log_g_of_t)
-            return parallel_compute_geo_step_backwards_euler(prediction[0], prediction[1], prediction[2], self.step_size, self.metric.log_g_of_t, self.metric.dx_log_g_of_t, self.metric.dy_log_g_of_t)
+            prediction = compute_geo_step_backwards_euler(x_values, y_values, theta_values, self.step_size, self.metric.log_g_of_t, self.metric.dx_log_g_of_t, self.metric.dy_log_g_of_t)
+            return compute_geo_step_backwards_euler(prediction[0], prediction[1], prediction[2], self.step_size, self.metric.log_g_of_t, self.metric.dx_log_g_of_t, self.metric.dy_log_g_of_t)
         if self.step_type == type_step_runge_kutta_4:
-            return parallel_compute_geo_step_runge_kutta(self.metric, x_values, y_values, theta_values, self.step_size, self.metric.log_g_of_t, self.metric.dx_log_g_of_t, self.metric.dy_log_g_of_t)
+            return compute_geo_step_runge_kutta(self.metric, x_values, y_values, theta_values, self.step_size, self.metric.log_g_of_t, self.metric.dx_log_g_of_t, self.metric.dy_log_g_of_t)

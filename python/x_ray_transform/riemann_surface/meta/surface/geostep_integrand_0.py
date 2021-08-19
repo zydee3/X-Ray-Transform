@@ -5,7 +5,7 @@ from x_ray_transform.constants import type_step_forward_euler, type_step_backwar
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_geo_step_I0(compute_values, integrand, step_type, step_size, x_values, y_values, theta_values, u):
+def compute_geo_step_I0(compute_values, integrand, step_type, step_size, x_values, y_values, theta_values, u):
     """
 
     :param compute_values:
