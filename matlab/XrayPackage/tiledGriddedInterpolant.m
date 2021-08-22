@@ -1,14 +1,18 @@
-classdef XrayHelper < RiemannSurface
-    %XRAYHELPER Class that manages data between arguments and helps with
-    %performing Xrays and inverses.
+classdef tiledGriddedInterpolant
+    %WRAPPEDGRIDDEDINTERPOLANT Summary of this class goes here
+    %   Detailed explanation goes here
     
     properties
         Property1
     end
     
+    properties (Access = 'private')
+        Property1
+    end
+    
     methods
-        function obj = XrayHelper(inputArg1,inputArg2)
-            %XRAYHELPER Construct an instance of this class
+        function obj = tiledGriddedInterpolant(inputArg1,inputArg2)
+            %WRAPPEDGRIDDEDINTERPOLANT Construct an instance of this class
             %   Detailed explanation goes here
             obj.Property1 = inputArg1 + inputArg2;
         end

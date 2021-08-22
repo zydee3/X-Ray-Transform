@@ -1,0 +1,266 @@
+%----------------------------------------------------------------------------------------------------------------
+% Set up doc
+%----------------------------------------------------------------------------------------------------------------
+
+\documentclass[10pt]{article}
+
+% packages, set up packages
+\usepackage{amsmath,amsthm,amssymb}
+
+\usepackage[margin=1in]{geometry}
+
+\usepackage{array}
+
+\usepackage{color} 
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=false,
+    linktoc=all,     
+    linkcolor=blue,
+}
+
+%----------------------------------------------------------------------------------------------------------------
+% Define useful functions
+%----------------------------------------------------------------------------------------------------------------
+
+\newcommand{\linebr}{\vspace{10pt}\\}
+
+%----------------------------------------------------------------------------------------------------------------
+% Define useful enviroments and enviromenty methods
+%----------------------------------------------------------------------------------------------------------------
+
+\newenvironment{codetext} { 
+\fontfamily{qcr}\selectfont 
+	%\newcommand{\forT}{\textcolor{blue}{for} } 
+	%\newcommand{\endT}{\textcolor{blue}{end}}
+	%\newcommand{\tabT}{\hspace*{1.5em}}
+}%%
+{  }
+
+%----------------------------------------------------------------------------------------------------------------
+% Set up the text-from-matlab-file stuff
+%----------------------------------------------------------------------------------------------------------------
+
+%\definecolor{matgreen}{RGB}{2,128,9}
+%\definecolor{matblue}{RGB}{14,0,255}
+%\definecolor{matpurp}{RGB}{184,2,249}
+
+
+%\lstset{language=Matlab,%
+%    breaklines=true,
+%    basicstyle=\footnotesize\fontfamily{qcr},
+%    morekeywords={matlab2tikz},
+%    	keywordstyle=\color{matblue},%
+%    morekeywords=[2]{1}, keywordstyle=[2]{\color{black}},
+%    	identifierstyle=\color{black},%
+%    	stringstyle=\color{matpurp},
+%    	commentstyle=\color{matgreen},%
+%    showstringspaces=false,%without this there will be a symbol in the places where there is a space
+%    emph=[1]{for,end,break},emphstyle=[1]\color{red}, %some words to emphasise
+%    %emph=[2]{word1,word2}, emphstyle=[2]{style},    
+%}
+
+		%\lstinputlisting{EXAMPLECODE_initializeSurface.m}
+
+%--------------------------------------------------------
+
+
+
+
+\newenvironment{constructionInfo} {
+\newcolumntype{C}{>{\begin{codetext} \hangindent=3in}p{0.5\linewidth}<{\end{codetext}}}%
+
+\small
+
+\begin{center} 
+\begin{tabular}{ C p{0.5\linewidth} }
+}%% 
+{
+\end{tabular} 
+\end{center}
+}
+
+%--------------------------------------------------------
+
+\newenvironment{propertyInfo} {
+\newcolumntype{C}{>{\begin{codetext} \hangindent=3in}p{0.25\linewidth}<{\end{codetext}}}%
+
+\small
+
+\begin{center} 
+\begin{tabular}{ C p{0.7\linewidth} }
+}%% 
+{
+\end{tabular} 
+\end{center}
+}
+
+%--------------------------------------------------------
+
+\newcommand{\methodbr}{\hfill\vspace{5pt}\linebreak}
+\newenvironment{methodInfo}[1]{%
+  \methodbr \begin{codetext} #1 \end{codetext} \vspace*{-5pt}
+  \begin{center}\begin{minipage}[t]{0.9\textwidth}
+}
+{\end{minipage}\end{center} \vspace*{-15pt}}
+
+%----------------------------------------------------------------------------------------------------------------
+% Begin doc
+%----------------------------------------------------------------------------------------------------------------
+
+\begin{document}
+
+% table of contents ---------------------------------------------------------------------------------------------
+\setcounter{tocdepth}{2} % hides subsubsections in TOC
+\tableofcontents
+
+% end of table of contents --------------------------------------------------------------------------------------
+
+\newpage
+\section{Class Summaries}
+	
+	
+	\subsection{Domain}
+		The Domain class handles information about a boundary defined in polar coordinates with respect to an origin and rotation.
+		Additionally, this class handles various boundary-specific computations used in the RiemannSurface class.
+		\subsubsection{Construction}
+			The Domain class exists as a general superclass of its many specialized subclasses. 
+			While it is possible to construct any domain directly from this class, to maintain accuracy and efficiency of usage it is much better to instead construct any of its subclasses.
+			\linebr Note that all subclasses of Domain take Name-Values arguments.
+			\linebr Note also that no construction of Domain takes arguments for the origin and rotation of the domain. These properties must be set after construction.
+			\begin{constructionInfo}
+				Domain 			& Default instance of Domain. It is recommended to instead use the circleDomain subclass. \\
+				Domain(handle) 	& Domain from a function handle. Derivatives and several methods are implemented numerically. \\
+			\end{constructionInfo}
+			\begin{constructionInfo}
+				circleDomain(radius) 				     & Circular domain.\\
+				ellipseDomain(radiusA, radiusB) 		 & Elliptical domain.\\
+				cosineDomain(radius, cycles, amplitude)	 \\
+				polygonDomain(radius, sides) 				& Regular polygon domain. \\
+				smoothDomain(radius, sides, bevelRadius) 	& Regular polygon domain whose function is $C^2$.
+			\end{constructionInfo}
+		\subsubsection{Properties}
+			\begin{propertyInfo}
+				originX 	    & The X part of the origin vector. \\
+				originY 		& The Y part of the origin vector. \\
+				theta 			& The counterclockwise rotation of the domain. \\
+				exitInterpType 	& The interpolation method used in the exitInterp method. \\
+			\end{propertyInfo}
+		\subsubsection{Method Summary}
+			\paragraph{Boundary Functions}
+				\begin{methodInfo}{instance.bdr(th)}
+					Evaluates the boundary function at the angles th.
+				\end{methodInfo}
+				\begin{methodInfo}{instance.dbdr(th)}
+					Evaluates the first derivative of the boundary function at the angles th.
+				\end{methodInfo}
+				\begin{methodInfo}{instance.ddbdr(th)}
+					Evaluates the second derivative of the boundary function at the angles th.
+				\end{methodInfo}
+			\paragraph{Computers}
+				\begin{methodInfo}{instance.getMinRadius}
+					Returns the minimum radius of the boundary function.
+				\end{methodInfo}
+				\begin{methodInfo}{instance.getBoundingBox}
+					Returns the lower left and upper right corners of the boundary's axis aligned bounding box relative to the origin.
+				\end{methodInfo}
+			\paragraph{Plotters}
+				\begin{methodInfo}{instance.plot}
+					Plots the boundary onto an available figure using instance.bdr. 
+				\end{methodInfo}
+			\paragraph{Misc}
+				\begin{methodInfo}{Domain.mustBeDomain(obj)}
+					Errors if the passed argument is not an instance of Domain or its subclasses.
+				\end{methodInfo}
+		\subsubsection{Detailed Method Description}
+		
+		
+		
+	\newpage
+	\subsection{Metric}
+	 	The Metric class stores the conformal factor of a conformally Euclidean metric and its derivatives for use in the RiemannSurface class.
+		\subsubsection{Construction}
+			The Metric class exists as a general superclass of its many specialized subclasses. 
+			While it is possible to construct any metric directly from this class, to maintain accuracy and efficiency of usage it is much better to instead construct any of its subclasses.
+			\linebr Note that all subclasses of Metric take Name-Values arguments.
+			\begin{constructionInfo}
+				Metric 			& Default instance of Metric. It is recommended to instead use the euclidMetric subclass. \\
+				Metric(handle) 	&  \\
+			\end{constructionInfo}
+			\begin{constructionInfo}
+				euclidMetric				    & Euclidean metric.\\
+				sphereMetric(radius)		    & Metric with constant positive curvature.\\
+				hyperbolicMetric(radius)	    & Metric with constant negative curvature.\\
+				constcurveMetric(kappa)	    & Metric with constant curvature. $4\kappa = R^{-2}$\\
+			\end{constructionInfo}
+		\subsubsection{Method Summary}
+			\paragraph{Blah}
+				\begin{methodInfo}{instance.lg(x,y)}
+					Evaluates the natural log of the g function at the points (x,y).
+				\end{methodInfo}
+		\subsubsection{Detailed Method Description}
+	 	
+	\newpage 
+	\subsection{RiemannSurface}
+		The RiemannSurface class stores instances of the Domain and Metric classes and handles computations dealing with geodesics and the geodesic X-Ray transform.
+		\subsubsection{Construction}
+		
+		\subsubsection{Properties}		
+		
+		\subsubsection{Method Summary}
+		
+		\subsubsection{Detailed Method Description}
+		
+%----------------------------------------------------------------------------------------------------------------
+% end of Class Summaries 
+%----------------------------------------------------------------------------------------------------------------
+
+\newpage
+\section{Additional Examples}
+
+	\subsection{X-Ray Transform}
+		\addtocontents{toc}{\setcounter{tocdepth}{3}} % enables subsubsections in TOC
+		\subsubsection{Forward Problem}
+		\subsubsection{Representing Functions from Data}
+		\subsubsection{Inversion}
+		\subsubsection{Plotting}
+		
+		\addtocontents{toc}{\setcounter{tocdepth}{2}} % hides subsubsections in TOC
+
+		
+	\subsection{Writing New Metric and Domain Subclasses}
+
+
+%----------------------------------------------------------------------------------------------------------------
+% end of Example Code 
+%----------------------------------------------------------------------------------------------------------------
+
+\newpage
+\section{Navigating Code}
+
+	\subsection{Naming Convention}
+
+%----------------------------------------------------------------------------------------------------------------
+% end of Additional Notes on Numerical Implementations 
+%----------------------------------------------------------------------------------------------------------------
+
+\newpage
+\section{Additional Notes on Numerical Implementations and Optimizations}
+
+	\subsection{Interpolated Results}
+		
+		\subsubsection{Boundary Exit Interpolation}
+		\subsubsection{Search Interpolation}
+		
+			
+	\subsection{IsInside Method}
+	
+	\subsection{Class Methods vs. Anonymous Functions}
+	
+
+%----------------------------------------------------------------------------------------------------------------
+% end of Additional Notes on Numerical Implementations 
+%----------------------------------------------------------------------------------------------------------------
+
+\end{document}

@@ -744,7 +744,22 @@ classdef RiemannSurface
             alphaO = Alpha;
         end  
         
-        function [fDataO] = geoR_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt)
+        function [fDataO, betaO,alphaO] = geoR_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt)
+            
+            % A operator
+            po2 = pi/2;
+            
+            bscatt = mod(BetaScatt, 2*pi);
+            ascatt = mod(AlphaScatt+po2,pi)-po2;
+            
+            fDataO = [func(Beta,Alpha), sign*func(bscatt, ascatt)];
+            betaO = [Beta, Beta];
+            alphaO = [Alpha, ascatt+pi];
+            
+            % Hilbert
+            
+            
+            % A* operator
             
         end    
         

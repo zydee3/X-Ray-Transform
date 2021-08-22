@@ -1,0 +1,37 @@
+\contentsline {section}{\numberline {1}Class Summaries}{2}{section.1}%
+\contentsline {subsection}{\numberline {1.1}Domain}{2}{subsection.1.1}%
+\contentsline {subsubsection}{\numberline {1.1.1}Construction}{2}{subsubsection.1.1.1}%
+\contentsline {subsubsection}{\numberline {1.1.2}Properties}{2}{subsubsection.1.1.2}%
+\contentsline {subsubsection}{\numberline {1.1.3}Method Summary}{2}{subsubsection.1.1.3}%
+\contentsline {paragraph}{Boundary Functions}{2}{section*.2}%
+\contentsline {paragraph}{Computers}{2}{section*.3}%
+\contentsline {paragraph}{Plotters}{3}{section*.4}%
+\contentsline {paragraph}{Misc}{3}{section*.5}%
+\contentsline {subsubsection}{\numberline {1.1.4}Detailed Method Description}{3}{subsubsection.1.1.4}%
+\contentsline {subsection}{\numberline {1.2}Metric}{4}{subsection.1.2}%
+\contentsline {subsubsection}{\numberline {1.2.1}Construction}{4}{subsubsection.1.2.1}%
+\contentsline {subsubsection}{\numberline {1.2.2}Method Summary}{4}{subsubsection.1.2.2}%
+\contentsline {paragraph}{Blah}{4}{section*.6}%
+\contentsline {subsubsection}{\numberline {1.2.3}Detailed Method Description}{4}{subsubsection.1.2.3}%
+\contentsline {subsection}{\numberline {1.3}RiemannSurface}{5}{subsection.1.3}%
+\contentsline {subsubsection}{\numberline {1.3.1}Construction}{5}{subsubsection.1.3.1}%
+\contentsline {subsubsection}{\numberline {1.3.2}Properties}{5}{subsubsection.1.3.2}%
+\contentsline {subsubsection}{\numberline {1.3.3}Method Summary}{5}{subsubsection.1.3.3}%
+\contentsline {subsubsection}{\numberline {1.3.4}Detailed Method Description}{5}{subsubsection.1.3.4}%
+\contentsline {section}{\numberline {2}Additional Examples}{6}{section.2}%
+\contentsline {subsection}{\numberline {2.1}X-Ray Transform}{6}{subsection.2.1}%
+\global \c@tocdepth 3\relax 
+\contentsline {subsubsection}{\numberline {2.1.1}Forward Problem}{6}{subsubsection.2.1.1}%
+\contentsline {subsubsection}{\numberline {2.1.2}Representing Functions from Data}{6}{subsubsection.2.1.2}%
+\contentsline {subsubsection}{\numberline {2.1.3}Inversion}{6}{subsubsection.2.1.3}%
+\contentsline {subsubsection}{\numberline {2.1.4}Plotting}{6}{subsubsection.2.1.4}%
+\global \c@tocdepth 2\relax 
+\contentsline {subsection}{\numberline {2.2}Writing New Metric and Domain Subclasses}{6}{subsection.2.2}%
+\contentsline {section}{\numberline {3}Navigating Code}{7}{section.3}%
+\contentsline {subsection}{\numberline {3.1}Naming Convention}{7}{subsection.3.1}%
+\contentsline {section}{\numberline {4}Additional Notes on Numerical Implementations and Optimizations}{8}{section.4}%
+\contentsline {subsection}{\numberline {4.1}Interpolated Results}{8}{subsection.4.1}%
+\contentsline {subsubsection}{\numberline {4.1.1}Boundary Exit Interpolation}{8}{subsubsection.4.1.1}%
+\contentsline {subsubsection}{\numberline {4.1.2}Search Interpolation}{8}{subsubsection.4.1.2}%
+\contentsline {subsection}{\numberline {4.2}IsInside Method}{8}{subsection.4.2}%
+\contentsline {subsection}{\numberline {4.3}Class Methods vs. Anonymous Functions}{8}{subsection.4.3}%

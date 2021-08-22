@@ -1,5 +1,0 @@
-dom = circleDomain();
-met = gaussMetric(weights=3,widths=0.3,xOffsets=-1);
-%dom = cosineDomain();
-testsurf = RiemannSurface(dom,met);
-testsurf.stepType = 'RK4';
