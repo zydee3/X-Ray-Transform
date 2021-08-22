@@ -4,43 +4,41 @@ from numpy import sin, cos, power, square, pi, arctan2, zeros, empty, array, sqr
 
 from x_ray_transform import type_domain_circle, type_domain_cosine, type_domain_ellipse
 
-# region compute_values
-
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_alpha_normal(theta, boundary, dtheta_boundary):
+def compute_alpha_normal(theta, boundary, dtheta_boundary):
     ct = cos(theta)
     st = sin(theta)
     return 0.5 * pi - arctan2(boundary * ct + dtheta_boundary * st, boundary * st - dtheta_boundary * ct)
 
 
 @njit(parallel=True, nogil=True)
-def parallel_compute_values_circle(radius, theta, compute_alpha_normal):
+def compute_values_circle(radius, theta, do_compute_alpha_normal):
     boundary = empty(theta.size)
     boundary.fill(radius)
-    if not compute_alpha_normal:
+    if not do_compute_alpha_normal:
         return boundary, zeros(0)
 
-    return boundary, parallel_compute_alpha_normal(theta, boundary, 0)
+    return boundary, do_compute_alpha_normal(theta, boundary, 0)
 
 
 @njit(parallel=True, nogil=True)
-def parallel_compute_values_cosine(cycles, radius, amplitude, theta, compute_alpha_normal):
+def compute_values_cosine(cycles, radius, amplitude, theta, do_compute_alpha_normal):
     ct = cycles * theta
     cos_ct = cos(ct)
     boundary = radius + amplitude * cos_ct
 
-    if not compute_alpha_normal:
+    if not do_compute_alpha_normal:
         return boundary, zeros(0)
 
     dtheta_boundary = -1 * cycles * amplitude * sin(ct)
     # ddtheta_boundary = -1 * square(cycles) * amplitude * cos_ct
 
-    return boundary, parallel_compute_alpha_normal(theta, boundary, dtheta_boundary)
+    return boundary, do_compute_alpha_normal(theta, boundary, dtheta_boundary)
 
 
 @njit(fastmath=True, parallel=True)
-def parallel_compute_values_ellipse(minor_radius, major_radius, theta_offset, theta, compute_alpha_normal):
+def compute_values_ellipse(minor_radius, major_radius, theta_offset, theta, do_compute_alpha_normal):
     # save redundant computations
     mm = minor_radius * major_radius
 
@@ -49,20 +47,14 @@ def parallel_compute_values_ellipse(minor_radius, major_radius, theta_offset, th
     distance = sqrt(major_radius * square(cos(delta_theta)) + minor_radius * square(sin(delta_theta)))
     boundary = mm / distance
 
-    if not compute_alpha_normal:
+    if not do_compute_alpha_normal:
         return boundary, zeros(0)
 
     # computing dtheta and ddtheta boundary
     dtheta_boundary = power(boundary, 3) * sin(2 * delta_theta) * (square(major_radius) - square(minor_radius ** 2)) / 2 / mm * mm
     # ddtheta_boundary = square(3 * dtheta_boundary) / boundary + power(boundary, 3) * cos(2 * delta_theta) * (major_radius - minor_radius) / mm_squared
 
-    return boundary, parallel_compute_alpha_normal(theta, boundary, dtheta_boundary)
-
-
-# endregion
-
-
-# region internals
+    return boundary, do_compute_alpha_normal(theta, boundary, dtheta_boundary)
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
@@ -125,13 +117,13 @@ class Domain:
         self.y_offset = 0
         self.origin = 0
 
-    def compute_values(self, theta, compute_alpha_normal=False):
+    def compute_values(self, theta, do_compute_alpha_normal=False):
         if self.domain_type == type_domain_circle:
-            return parallel_compute_values_circle(self.radius, theta, compute_alpha_normal)
+            return compute_values_circle(self.radius, theta, do_compute_alpha_normal)
         if self.domain_type == type_domain_cosine:
-            return parallel_compute_values_cosine(self.cycles, self.radius, self.amplitude, theta, compute_alpha_normal)
+            return compute_values_cosine(self.cycles, self.radius, self.amplitude, theta, do_compute_alpha_normal)
         if self.domain_type == type_domain_ellipse:
-            return parallel_compute_values_ellipse(self.minor_radius, self.major_radius, self.theta_offset, theta, compute_alpha_normal)
+            return compute_values_ellipse(self.minor_radius, self.major_radius, self.theta_offset, theta, do_compute_alpha_normal)
 
     def get_bounding_box(self):
         return get_bounding_box(self.theta_offset)

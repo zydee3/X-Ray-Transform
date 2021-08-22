@@ -3,7 +3,7 @@ from numba import prange, njit
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_geodesic(domain_is_inside, domain_min_radius, timeout, step_size, x_values, y_values, theta_values):
+def compute_geodesic(domain_is_inside, domain_min_radius, timeout, step_size, x_values, y_values, theta_values):
     min_radius_squared = square(domain_min_radius)
     num_max_steps = floor_divide(timeout, step_size)
     num_geodesics = x_values.size

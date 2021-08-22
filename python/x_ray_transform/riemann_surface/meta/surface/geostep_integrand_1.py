@@ -5,7 +5,7 @@ from x_ray_transform.constants import type_step_forward_euler, type_step_backwar
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_geo_step_I1(compute_values, integrand_u, integrand_v, step_type, step_size, x_values, y_values, theta_values, u):
+def compute_geo_step_I1(compute_values, integrand_u, integrand_v, step_type, step_size, x_values, y_values, theta_values, u):
     """
 
     :param compute_values:
@@ -37,7 +37,7 @@ def parallel_compute_geo_step_I1(compute_values, integrand_u, integrand_v, step_
 
     # BACKWARDS EULER ==================================================================================================
     elif step_type == type_step_backward_euler:
-        # predictor
+        # predictor ----------------------------------------------------------------------------------------------------
         exponential_log_of_g_1 = exp(-0.5 * values[0])
         x = exponential_log_of_g_1 * cos_theta
         y = exponential_log_of_g_1 * sin_theta
@@ -97,17 +97,16 @@ def parallel_compute_geo_step_I1(compute_values, integrand_u, integrand_v, step_
         cos_theta = cos(new_theta)
         sin_theta = sin(new_theta)
 
-        partial_step_size = half_step_size / 3
         exponential_log_of_g_4 = exp(-0.5 * values[0])
 
-        # todo introduce a local function for each caculation, this is too hard to read and has redundant calculations: def function(x, y, coefficient)
         u = u + ((integrand_u(x_values, y_values) * cos_theta + integrand_v(x_values, y_values) * sin_theta) * exponential_log_of_g_1
                  + 2 * (integrand_u(x_values + half_step_size * k1_x, y_values + half_step_size * k1_y) * cos_theta + integrand_v(x_values + half_step_size * k1_x, y_values + half_step_size * k1_y) * sin_theta) * exponential_log_of_g_2
                  + 2 * (integrand_u(x_values + half_step_size * k2_x, y_values + half_step_size * k2_y) * cos_theta + integrand_v(x_values + half_step_size * k2_x, y_values + half_step_size * k2_y) * sin_theta) * exponential_log_of_g_3
                  + (integrand_u(x_values + step_size * x, y_values + step_size * y) * cos_theta + integrand_v(x_values + step_size * x, y_values + step_size * y) * sin_theta) * exponential_log_of_g_4)
 
-        x = x_values + half_step_size * (k1_x + 2 * (k2_x + x) + exponential_log_of_g_4 * cos_theta)
-        y = y_values + half_step_size * (k1_y + 2 * (k2_y + y) + exponential_log_of_g_4 * sin_theta)
-        theta = theta_values + half_step_size * k1_theta + 2 * (k2_theta + theta) + (0.5 * exponential_log_of_g_4 * (cos_theta * values[2] - sin_theta * values[1]))
+        partial_step_size = half_step_size / 3
+        x = x_values + partial_step_size * (k1_x + 2 * (k2_x + x) + exponential_log_of_g_4 * cos_theta)
+        y = y_values + partial_step_size * (k1_y + 2 * (k2_y + y) + exponential_log_of_g_4 * sin_theta)
+        theta = theta_values + partial_step_size * k1_theta + 2 * (k2_theta + theta) + (0.5 * exponential_log_of_g_4 * (cos_theta * values[2] - sin_theta * values[1]))
 
         return x, y, theta, u

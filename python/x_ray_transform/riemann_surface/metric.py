@@ -8,7 +8,7 @@ from x_ray_transform.constants import type_metric_constant_curvature, type_metri
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_values_constant_curvature(radius_squared, x_values, y_values):
+def compute_values_constant_curvature(radius_squared, x_values, y_values):
     difference_of_squares = radius_squared - square(x_values) - square(y_values)
     log_g_of_t = log(square(radius_squared) * 4) - log(square(difference_of_squares))
     dx_log_g_of_t = 4 * x_values / difference_of_squares
@@ -19,7 +19,7 @@ def parallel_compute_values_constant_curvature(radius_squared, x_values, y_value
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_values_gaussian(x_values, y_values, widths, weights, center_x, center_y):
+def compute_values_gaussian(x_values, y_values, widths, weights, center_x, center_y):
     log_g_of_t = zeros(x_values.size)
     dx_log_g_of_t = zeros(x_values.size)
     dy_log_g_of_t = zeros(x_values.size)
@@ -45,7 +45,7 @@ def parallel_compute_values_gaussian(x_values, y_values, widths, weights, center
 
 
 @njit(fastmath=True, parallel=True, nogil=True)
-def parallel_compute_values_polynomial(x_values, y_values, coefficients):
+def compute_values_polynomial(x_values, y_values, coefficients):
     coefficient_0_x = coefficients[0] * x_values
 
     log_g_of_t = square(coefficient_0_x) + (coefficients[1] * x_values * y_values) + square(coefficients[2] * y_values) \
@@ -112,11 +112,11 @@ class Metric:
         result = (zeros(0), zeros(0), zeros(0), zeros(0))
 
         if self.metric_type == type_metric_constant_curvature:
-            result = parallel_compute_values_constant_curvature(self.radius_squared, x_values, y_values)
+            result = compute_values_constant_curvature(self.radius_squared, x_values, y_values)
         if self.metric_type == type_metric_gaussian:
-            result = parallel_compute_values_gaussian(x_values, y_values, self.widths, self.weights, self.center_x, self.center_y)
+            result = compute_values_gaussian(x_values, y_values, self.widths, self.weights, self.center_x, self.center_y)
         if self.metric_type == type_metric_polynomial:
-            result = parallel_compute_values_polynomial(x_values, y_values, self.coefficients)
+            result = compute_values_polynomial(x_values, y_values, self.coefficients)
 
         self.log_g_of_t = result[0]
         self.dx_log_g_of_t = result[1]
