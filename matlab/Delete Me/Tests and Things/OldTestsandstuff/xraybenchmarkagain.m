@@ -91,7 +91,7 @@ axis equal
 plot(log(stepSizes),log(eeVals(2:end)),'r*')   
 plot(log(stepSizes),log(ieVals(2:end)),'g*')
 plot(log(stepSizes),log(rkVals(2:end)),'b*')
-title('dont worry, its a loglog, but i couldnt figure out how to get hold on to work with that')
+%title('dont worry, its a loglog, but i couldnt figure out how to get hold on to work with that')
      
 
 

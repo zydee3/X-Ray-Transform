@@ -5,6 +5,7 @@ classdef Domain
         originX (1,1) {mustBeNumeric} = 0
         originY (1,1) {mustBeNumeric} = 0
         theta (1,1) {mustBeNumeric} = 0
+        exitInterpType (1,:) {mustBeText} = 'last'
     end
     
     properties (Access = 'private')
@@ -109,10 +110,68 @@ classdef Domain
             bool = XY2 <= r;
             
             if (any(~bool))
-                i = find(~bool);
-                r = obj.bdr(atan2(Y(i),X(i)) - obj.theta);
-                bool(i) = XY2(i) <= r.*r;
+                r = obj.bdr(atan2(Y(bool),X(bool)) - obj.theta);
+                bool(bool) = XY2(bool) <= r.*r;
             end
+        end
+        
+        function [betaO,alphaO, tO] = exitInterp(obj, xin,yin, xout,yout)
+            % constructs betaO,alphaO from an interpolant described by a
+            % pair of points.
+
+            switch obj.exitInterpType
+                case 'last'
+                    tO = 1;
+                    betaO = atan2(yout,xout);
+                    
+                case 'slinear'
+                    mIn = sqrt(xin.*xin + yin.*yin);
+                    mOut = sqrt(xout.*xout + yout.*yout);
+                    [btIn,btOut] = atan2near(yin, xin, yout, xout);
+                    
+                    funcin = -mIn+obj.bdr(btIn);
+                    tO = (funcin)./( mOut-obj.bdr(btOut) +funcin);
+
+                    betaO = mod((btOut-btIn).*tO + btIn,2*pi);
+                case 'slinearB'
+                    weight = 0.4;
+                    xint = (xout-xin)*weight+xin; yint = (yout-yin)*weight+yin;
+                    
+                    mIn = sqrt(xint.*xint + yint.*yint);
+                    mOut = sqrt(xout.*xout + yout.*yout);
+                    [btIn,btOut] = atan2near(yint, xint, yout, xout);
+                    funcin = -mIn+obj.bdr(btIn);
+                    
+                    tO = (funcin)./( mOut-obj.bdr(btOut) +funcin);
+
+                    betaO = mod((btOut-btIn).*tO + btIn,2*pi);    
+                    alphaO = -obj.alNormal(betaO) + atan2(yout-yin,xout-xin) + pi;
+                    
+                    tO = (tO.*(1-weight) + weight);
+                    return;
+                        
+                case 'slinearC'
+                    weight = 0.273;
+                    xint = (xout-xin)*weight+xin; yint = (yout-yin)*weight+yin;
+                    xout = (xin-xout)*weight+xout; yout = (yin-yout)*weight+yout;
+                    
+                    mIn = sqrt(xint.*xint + yint.*yint);
+                    mOut = sqrt(xout.*xout + yout.*yout);
+                    [btIn,btOut] = atan2near(yint, xint, yout, xout);
+                    funcin = -mIn+obj.bdr(btIn);
+                    
+                    tO = (funcin)./( mOut-obj.bdr(btOut) +funcin);
+
+                    betaO = mod((btOut-btIn).*tO + btIn,2*pi);    
+                    alphaO = -obj.alNormal(betaO) + atan2(yout-yin,xout-xin) + pi;
+                    
+                    tO = (tO.*(1-2*weight) + weight);
+                    return;
+                    
+                otherwise 
+                    error('wrong interpolation method')
+            end
+            alphaO = -obj.alNormal(betaO) + atan2(yout-yin,xout-xin) + pi;
         end
         
         

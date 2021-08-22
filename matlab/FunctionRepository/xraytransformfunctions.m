@@ -12,6 +12,8 @@ func0 = @(x,y) x.^2+y.^2 < r^2;
 xray0 = @(beta,alpha) 2.*sqrt( r.*r - R.*R.*sin(...
                                max( min(abs(alpha),asin(r/R)) ,0)...
                                              ).^2 );
+    % note: allowing R=r also gives the solution for funcO(x,y)=1
+                                         
                                          
 % Half sphere
 func0 = @(x,y) sqrt(r.^2 - min(x.^2 + y.^2,r.^2));
