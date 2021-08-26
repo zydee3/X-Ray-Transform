@@ -5,8 +5,9 @@ clc, close all, clear
 
     % begin by initializing a surface (see EXAMPLECODE_initializeSurface)
         dc = circleDomain(radius = 1.3);
+            %dc.exitInterpType = 'slinear';
         ms = sphereMetric(radius = 2);
-        rsurf = RiemannSurface(dc,ms, stepSize = 0.3, stepType = 'RK4');
+        rsurf = RiemannSurface(dc,ms, stepSize = 0.01, stepType = 'RK4');
 
 
     % initialize some functions
@@ -26,7 +27,7 @@ clc, close all, clear
         figure, hold on, axis equal
         [minB,maxB] = dc.getBoundingBox();
 
-        [VX,VY] = ndgrid(dc.aabbgrid(250));
+        [VX,VY] = ndgrid(dc.aabbspace(250));
         pl = pcolor(VX,VY,func0(VX,VY));
         pl.EdgeColor = 'none';
 
@@ -110,7 +111,7 @@ clc, close all, clear
         
         AstarHAI0f = griddedInterpolant(betaO,alphaO,astarData);
             
-            %{
+            %{.
             figure, hold on
             %pl = pcolor(VX,VY,funcData);
             pl = pcolor(betaO,alphaO,astarData);
@@ -120,12 +121,13 @@ clc, close all, clear
       
     % I0perpstar
         % initialize points to reconstruct at (we could just re-use the points used to plot the original function)
-        [VX,VY] = ndgrid(dc.aabbgrid(100));
+        [VX,VY] = ndgrid(dc.aabbspace(100));
         
         disp('Backproject I0_perp^*');   
         rsurf.stepType = 'RK4';
-        funcData = rsurf.I0perpstar(AstarHAI0f, VX,VY, 40)/(8*pi); % !!!!TODO!!!! why is this division by 8 as opposed to division by 2?
-
+        tic
+            funcData = rsurf.I0perpstar(AstarHAI0f, VX,VY, 40)/(8*pi); % !!!!TODO!!!! why is this division by 8 as opposed to division by 2?
+        toc
 
 
      %plot reconstructed function

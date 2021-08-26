@@ -24,31 +24,19 @@ classdef Metric
             end    
             
         end
-        
+               
         function out = dxlg(obj,x,y)
-            %DXLG Derivative of obj.bdr with respect to x.
-            %   Method computes the derivative numerically from obj.lg if not
-            %   overwritten by a subclass.
-            
-            [~,out,~] = obj.metricVals(x, y);
+            [~,out] = obj.metricVals(x,y);
         end
         
         function out = dylg(obj,x,y)
-            %DYLG Derivative of obj.bdr with respect to y.
-            %   Method computes the derivative numerically from obj.lg if not
-            %   overwritten by a subclass.
-            
-            [~,~,out] = obj.metricVals(x, y);
+            [~,~,out] = obj.metricVals(x,y);
         end
         
         function out = curv(obj,x,y)
-            %CURV Curvature described by the metric at the point (x,y).
-            %   Method computes the curvature numerically from obj.lg if not
-            %   overwritten by a subclass.
-            [~,~,~,out] = obj.metricValsCurv(x, y);
+            [~,~,~,out] = obj.metricValsCurv(x,y);
         end
         
-               
         function obj = Metric(lg)
             %METRIC Constructs an instance of Metric.
         if (strcmp(class(obj), 'Metric')) 
@@ -103,53 +91,53 @@ classdef Metric
             end
             
             [nr,nc] = size(X);
-
-            xtmp = reshape(X,nr*nc,1);
-            ytmp = reshape(Y,nr*nc,1);
             
-            [lgt,dxlgt,dylgt] = metricVals(obj, X, Y);        
-            curvt = reshape(-(dderiv(@(x0) obj.lgVAR(x0,Y), X) + ...
-                              dderiv(@(y0) obj.lgVAR(X,y0), Y)) .* ...
-                             (0.5*exp(-obj.lgVAR(X,Y))),        nr,nc);
+            [lgt,dxlgt,dylgt] = metricVals(obj, X, Y);     
+            curvt = reshape(-(dderiv(@(x0) obj.metricVals(x0,Y), X) + ...
+                              dderiv(@(y0) obj.metricVals(X,y0), Y)) .* ...
+                             (0.5*exp(-obj.metricVals(X,Y))),        nr,nc);
         end    
   
-        
 %--------------------------------------------------------------------------
 %%                                  Misc
-%--------------------------------------------------------------------------        
+%--------------------------------------------------------------------------             
+                          
+        function [xO,yO,zO] = deproject(obj,X,Y)
+            error('Metric must define a deproject method in order for deprojected plotters to function. Note that not all metrics can have such a method accurately defined.')            
+        end
+        
+        function [xO,yO] = aabbspace(obj,domain,resoX,resoY)
+            arguments
+                obj
+                domain (1,1) {Domain.mustBeDomain}
+                resoX (1,1) {mustBeNumeric} = 250
+                resoY (1,1) {mustBeNumeric} = resoX
+            end
+            
+            [xO,yO] = domain.aabbspace(resoX,resoY);
+        end
 
-        function [lg,dxlg,dylg,curv] = getHandles(obj)
-            %METRICVALSCURV Returns lg, dxlg, dylg and curv as function
-            %handles.
-            lg = @(x,y) obj.lg(x,y);
-            dxlg = @(x,y) obj.dxlg(x,y);
-            dylg = @(x,y) obj.dylg(x,y);
-            curv = @(x,y) obj.curv(x,y);
-        end    
-    
-                               
 %--------------------------------------------------------------------------
 %%                                Plotters
 %--------------------------------------------------------------------------              
 
-        function out = plot(obj, reso, lbound,ubound)
+        function out = plot(obj, reso, minB,maxB)
             %PLOT Plots a contour plot of exp(lg/2) given a lower and upper
             %bound.
             
             arguments
                 obj
-                reso (1,1){mustBeNumeric} = 0.2
-                lbound (1,2) {mustBeNumeric} = [-5,-5]
-                ubound (1,2) {mustBeNumeric} = [5,5]
+                reso (1,1){mustBeNumeric} = 200
+                minB (1,2) {mustBeNumeric} = [-5,-5]
+                maxB (1,2) {mustBeNumeric} = -minB
             end
             
-            [X0,Y0] = meshgrid(lbound(1):reso:ubound(1),...
-                               lbound(2):reso:ubound(2));
+            [X0,Y0] = meshgrid(linspace(minB(1),maxB(1),reso),...
+                               linspace(minB(2),maxB(2),reso));
             
             Z = exp(metricVals(obj,X0,Y0)*0.5); 
             out = contour(X0,Y0,Z,20);
         end
-                
         
         function figureALL(obj, reso, lbound,ubound)
             %PLOTALL A convinient function that creates a new figure and 
@@ -186,6 +174,8 @@ classdef Metric
             view(2); 
             title('curv') 
         end
+        
+%--------------------------------------------------------------------------              
                         
     end    
     

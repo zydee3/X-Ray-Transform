@@ -7,7 +7,7 @@ clc, close all, clear
         R = pi/3;
         dc = circleDomain(radius = R);
         ms = euclidMetric;
-        rsurf = RiemannSurface(dc,ms, stepSize = 0.01, stepType = 'RK4');
+        rsurf = RiemannSurface(dc,ms, stepSize = 0.1, stepType = 'RK4');
 
 
     % initialize some functions
@@ -38,14 +38,14 @@ clc, close all, clear
         toc  
        
     % run I0_interp, slinear
-        dc.exitInterpType = 'slinearC';
+        dc.exitInterpType = 'slinear';
         rsurf.domain=dc;
         tic
         i0Data2 = rsurf.I0_scatt(betaG,alphaG, func_uncropped);
         toc
         
     % run I0_interp, slinearC
-        dc.exitInterpType = 'slinearB';
+        dc.exitInterpType = 'slinearC';
         rsurf.domain=dc;
         tic
         i0Data3 = rsurf.I0_scatt(betaG,alphaG, func_uncropped);

@@ -46,9 +46,9 @@ classdef RiemannSurface
         end    
                     
         
-        function [betaO] = StoBeta(obj, S, stepSize)
+        function [betaO] = StoBeta(obj, S, betaStepSize)
             
-            h = stepSize; % perhaps replace this with obj.stepSize
+            h = betaStepSize; % perhaps replace this with obj.stepSize
             
             sze = size(S);
             S = S(:);
@@ -57,15 +57,16 @@ classdef RiemannSurface
                 warning('input lengths are not already sorted. expect unpredictable ordering')                
             end
             if any(S<0), error('arclengths cannot be negative'), end
-            
-            
-            betaO = zeros(sze);
+                        
+            betaO = NaN(sze);
             spart = 0;
             betapart = 0;
             
-            for i = 1:length(S) % loop over lengths in order
+            i = 0;
+            while i ~= length(S) % loop over lengths in order
                 
                 sD = 1;
+                i = i+1;
                 
                 while spart < S(i)
                     sD = obj.arcLengthStep(betapart, h);
@@ -74,13 +75,12 @@ classdef RiemannSurface
                 end
                 % lin interpolate result (removes some artifacting)
                 betaO(i) = betapart + h * (S(i)-spart+sD)./sD - h;
-                                
-                %spart = S(i);
+                if betapart >= 2*pi, break; end
             end    
             
             betaO = mod(betaO,2*pi);
         end                      
-        
+               
         function [sO] = BetatoS(obj, Beta, stepSize)
             
             h = stepSize; % perhaps replace this with obj.stepSize
@@ -94,7 +94,7 @@ classdef RiemannSurface
             if any(Beta<0), error('beta cannot be negative'), end
             
             
-            sO = zeros(sze);
+            sO = NaN(sze);
             spart = 0;
             betapart = 0;
             
@@ -129,7 +129,7 @@ classdef RiemannSurface
             minR2 = dom.getMinRadius;
             minR2 = minR2*minR2;
             
-        % begin by computing beta (project geodesics)
+            % begin by computing beta (project geodesics)
 
             NMAX = floor(obj.geoDur/obj.stepSize) + 1;
             
@@ -160,7 +160,8 @@ classdef RiemannSurface
             %compute/interpolate scattering relation from the exited points
             origX = dom.originX;
             origY = dom.originY;
-            [betaO,alphaO, ~] = dom.exitInterp(x(noIPidx)-origX, y(noIPidx)-origY,...
+            betaO = NaN(sze); alphaO = NaN(sze);
+            [betaO(noIPidx),alphaO(noIPidx), ~] = dom.exitInterp(X(noIPidx)-origX, Y(noIPidx)-origY,...
                                                      xn(noIPidx)-origX,yn(noIPidx)-origY);
            
         end            
@@ -195,8 +196,7 @@ classdef RiemannSurface
             end
             
             % Reshape inputs
-            tsze = size(X);
-            X = X(:);   Y = Y(:);   Th = Th(:);
+            X = reshape(X,[],1);   Y = reshape(Y,[],1);   Th = reshape(Th,[],1);
             
             dom = obj.domain;
             
@@ -238,12 +238,9 @@ classdef RiemannSurface
 
             end
             
-            xO = xO(:, 1:t); yO = yO(:, 1:t); 
-            thO = thO(:, 1:t); 
+            xO = xO(:, 1:t)'; yO = yO(:, 1:t)'; 
+            thO = thO(:, 1:t)'; 
             
-            xO = geoReshape(xO,tsze); % reshape to agree with inputs
-            yO = geoReshape(yO,tsze);
-            thO = geoReshape(thO,tsze);
         end    
         
         
@@ -277,7 +274,7 @@ classdef RiemannSurface
             thO = xO;               thO(:,1) = Th;
             
             % initialize ab, abdot
-            ab = ones(ngeo*2,NMAX);   ab(1:end/2,1) = 0;
+            ab = NaN(ngeo*2,NMAX);   ab(1:end/2,1) = 0;   ab(end/2+1:end,1) = 1;
             abdot = flip(ab);
 
             t = 1;
@@ -304,22 +301,16 @@ classdef RiemannSurface
                 noIPidx = find(~insidepoints);
             end
             
-            xO = xO(:, 1:t); yO = yO(:, 1:t); 
-            thO = thO(:, 1:t); 
+            xO = xO(:, 1:t)'; yO = yO(:, 1:t)'; 
+            thO = thO(:, 1:t)'; 
                         
             % split ab into aO, bO
             bO = ab(1:end/2,:);
             aO = ab(end/2+1:end,:);
             
-            aO = aO(:, 1:t); bO = bO(:, 1:t); 
+            aO = aO(:, 1:t)'; bO = bO(:, 1:t)'; 
             
             % reshape to agree with inputs
-            
-            xO = geoReshape(xO,tsze);
-            yO = geoReshape(yO,tsze);
-            thO = geoReshape(thO,tsze);
-            aO = geoReshape(aO,tsze);
-            bO = geoReshape(bO,tsze);
             
         end
         
@@ -380,7 +371,6 @@ classdef RiemannSurface
  
         
                 
-        
 %--------------------------------------------------------------------------
 %%                               XRay                                      
 %--------------------------------------------------------------------------     
@@ -701,7 +691,6 @@ classdef RiemannSurface
             
             bscatt = mod(BetaScatt, 2*pi);
             ascatt = mod(AlphaScatt+po2,pi)-po2;
-            
             fDataO = [func(Beta,Alpha), sign*func(bscatt, ascatt)];
             betaO = [Beta, Beta];
             alphaO = [Alpha, ascatt+pi];
@@ -737,8 +726,8 @@ classdef RiemannSurface
             po2 = pi/2;
             
             bscatt = mod(BetaScatt, 2*pi);
-            ascatt = mod(-AlphaScatt+po2,2*pi)-po2; % !!!!!TODO!!!!! figure out why mod(AlphaScatt+po2,2*pi)-po2; doesnt work
-            
+            ascatt = mod(AlphaScatt+po2,2*pi)-po2; % !!!!!TODO!!!!! figure out why mod(AlphaScatt+po2,2*pi)-po2; doesnt work
+                                                   % edit: TOOD!!!! figure out what changed so that its no longer mod(-AlphaScatt+po2,2*pi)-po2; doesnt work
             fDataO = func(Beta,Alpha) -sign*func(bscatt, ascatt); % !!!!!TODO!!!!! figure out why func(Beta,Alpha) +sign*func(bscatt, ascatt); doesnt work
             betaO = Beta;
             alphaO = Alpha;
@@ -780,17 +769,15 @@ classdef RiemannSurface
             end
 
 
-            % reshape for plotting
+            % reshape for plotting (not totally neccessary)
             X = X(:);   Y = Y(:);   Th = Th(:);
-            
+
             [xO,yO,~] = obj.geodesic(X,Y,Th);
-            
-            % transpose for plotting
-            xO = geoDeshape(xO)';   yO = geoDeshape(yO)';
+
             plot(xO,yO,'r');
         end          
         
-        function plotGeoFan(obj, beta)
+        function plotGeoFan(obj, beta, numgeos)
             %PLOTGEOFAN Plots a fan of geodesics at a point on the domain using
             %obj.plotGeo.
             %   This method is to be used in tandom with obj.plot.
@@ -798,6 +785,7 @@ classdef RiemannSurface
             arguments
                 obj
                 beta (1,1) {mustBeNumeric} = 0
+                numgeos (1,1) {mustBeNumeric} = 0
             end
 
             dom = obj.domain;
@@ -810,7 +798,7 @@ classdef RiemannSurface
             holdBool = ishold;
             hold on;
             
-            Th = linspace(0.5*pi, 1.5*pi, 40) + dom.alNormal(beta) + dom.theta;
+            Th = linspace(0.5*pi, 1.5*pi, numgeos) + dom.alNormal(beta) + dom.theta;
             X = ones(size(Th)) * x;
             Y = ones(size(Th)) * y;
             
@@ -873,7 +861,7 @@ classdef RiemannSurface
             if (~holdBool), hold off; end;
         end          
         
-        function plotGeoNormals(obj, th)
+        function plotGeoNormals(obj, th,numgeos)
             %PLOTGEONORMALS Plots an array of geodesics from points in the domain 
             %using obj.plotGeo.
             %   Geodesics initially point relative to the direction of the 
@@ -883,23 +871,22 @@ classdef RiemannSurface
             arguments
                 obj
                 th (1,1) {mustBeNumeric} = 0
+                numgeos (1,1) {mustBeNumeric} = 0                
             end
-
-            plot(x,y,'r*')
-            holdBool = ishold;
-            hold on;
             
-            off = linspace(0,2*pi, 100);
+            beta = linspace(0,2*pi, numgeos+1); beta = beta(1:end-1);
             dom = obj.domain;
-            ra = dom.bdr(off - dom.theta);
-            X = cos(off) * ra + dom.originX;
-            Y = sin(off) * ra + dom.originY;
-            Th = off - dom.theta + th;
-
-            obj.plotGeo(X,Y,Th);    
+            ra = dom.bdr(beta - dom.theta);
+            X = cos(beta) .* ra + dom.originX;
+            Y = sin(beta) .* ra + dom.originY;
+            Th = th + dom.alNormal(beta) + pi;
             
             plot(X,Y,'r.','MarkerSize',5)
+            holdBool = ishold;
+            hold on;  
             
+            obj.plotGeo(X,Y,Th)
+                        
             if (~holdBool), hold off; end;
         end  
 
@@ -916,35 +903,32 @@ classdef RiemannSurface
                 args.enablePlotConjugates (1,1) {mustBeNumericOrLogical} = 0
             end
             
-            geos = prod(size(Th));
-
             dom = obj.domain;
             [minB,maxB] = dom.getBoundingBox;
                         
             X = ones(size(Th)) * x(1);
             Y = ones(size(Th)) * y(1);
             
-            inside = find(dom.isInside(X(1:end-1),Y(1:end-1)));
-            X = X(inside)';   Y = Y(inside)';   Th = Th(inside)';
+            inside = find(dom.isInside(X(1:end),Y(1:end)));
+            X = X(inside);   Y = Y(inside);   Th = Th(inside);
+            geos = length(Th);
             
-            
-            [xO,yO,~, aO,bO] = obj.geodesicJacobiAB(X,Y,Th);
-            xO = geoDeshape(xO)';   yO = geoDeshape(yO)';
-            aO = geoDeshape(aO)';   bO = geoDeshape(bO)';
+            [xO,yO,~, aP,bP] = obj.geodesicJacobiAB(X,Y,Th);
+            aO = aP;   bO = bP;
             
             if args.enableAbsed()
-                aO = abs(aO);
-                bO = abs(bO);
+                aP = abs(aP);
+                bP = abs(bP);
             end
 
             figure;
             % left figure, plot a
             subplot(1,2,1); axis equal; hold on;
                 dom.plotAlNormal;
-                for i= 1:geos-1
+                for i= 1:geos
                     s = pcolor(repmat(xO(:,i),1,2),...
                                repmat(yO(:,i),1,2),...
-                               repmat(aO(:,i),1,2));
+                               repmat(aP(:,i),1,2));
                    s.FaceAlpha=0; s.EdgeColor='interp'; s.LineWidth = 2;
                 end
                 title('geodesic flow a') 
@@ -955,18 +939,34 @@ classdef RiemannSurface
             subplot(1,2,2); axis equal; hold on;
             % right figure, plot b
                 dom.plotAlNormal;
-                for i= 1:geos-1
+                
+                for i= 1:geos
                     s = pcolor(repmat(xO(:,i),1,2),...
                                repmat(yO(:,i),1,2),...
-                               repmat(bO(:,i),1,2));
+                               repmat(bP(:,i),1,2));
                    s.FaceAlpha=0; s.EdgeColor='interp'; s.LineWidth = 2;
                 end
+                
                 title('geodesic flow b') 
                 xlim([minB(1),maxB(1)]);
                 ylim([minB(1),maxB(1)]);
                 if args.enableClamped, caxis([-2,2]); end
+                
+                
                 if args.enablePlotConjugates
-                    plotConjugates(obj, X,Y,Th); % TODO: change this so that the code searches through the already generated b function for zeros
+                    
+                    %case: b_n > 0, b_{n+1} < 0
+                    zidx = find([(bO(1:end-1,:).*bO(2:end,:)) < 0; zeros(1,geos)]);
+                    t = bO(zidx)./(bO(zidx)-bO(zidx+1));
+                    X = (xO(zidx+1)-xO(zidx)).*t+xO(zidx);
+                    Y = (yO(zidx+1)-yO(zidx)).*t+yO(zidx);
+                    %X = xO(zidx); Y = yO(zidx);
+                    %case: b_{n+1} = 0
+                    zidx = find([bO(2:end,:)==0; zeros(1,geos)]);
+                    X = [X,xO(zidx)]; Y = [Y,yO(zidx)];
+                    
+                    
+                    plot(X,Y,'g*','MarkerSize',5);
                 end
                     
         end    
@@ -1006,7 +1006,7 @@ classdef RiemannSurface
             
             met = obj.metric;
             
-            met.plot(0.1,minB,maxB);      
+            met.plot(200,minB,maxB);      
             
             holdBool = ishold;
             hold on;
@@ -1558,7 +1558,7 @@ classdef RiemannSurface
                     b = dom.bdr(Beta);
                     db = dom.dbdr(Beta);
                                         
-                    sDO = h * exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
+                    sDO = h * exp(0.5*met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
                     
                 case 'IE' % Trapazoid rule  ------------------------------------------------- ArcStep
                     % left sample
@@ -1566,7 +1566,7 @@ classdef RiemannSurface
                     b = dom.bdr(Beta);
                     db = dom.dbdr(Beta);
                                         
-                    sDO = exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
+                    sDO = exp(0.5*met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
                     
                     % right sample
                     Beta = Beta + h;
@@ -1574,14 +1574,14 @@ classdef RiemannSurface
                     b = dom.bdr(Beta);
                     db = dom.dbdr(Beta);
                     
-                    sDO = hovr * (exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db) + sDO);
+                    sDO = hovr * (0.5*exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db) + sDO);
                 case 'RK4' % Simpsons Rule  ------------------------------------------------- ArcStep
                     % left sample
                     cth = cos(Beta); sth = sin(Beta);
                     b = dom.bdr(Beta);
                     db = dom.dbdr(Beta);
                                         
-                    k1sD = exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
+                    k1sD = exp(0.5*met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
                     
                     % middle sample
                     Beta = Beta + hovr;
@@ -1589,7 +1589,7 @@ classdef RiemannSurface
                     b = dom.bdr(Beta);
                     db = dom.dbdr(Beta);
                     
-                    sDO = exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
+                    sDO = exp(0.5*met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
                     
                     % right sample                    
                     Beta = Beta + hovr;
@@ -1597,15 +1597,25 @@ classdef RiemannSurface
                     b = dom.bdr(Beta);
                     db = dom.dbdr(Beta);
                     
-                    sDO = h/6 * (exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db) + 4*sDO + k1sD);
+                    sDO = h/6 * (0.5*exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db) + 4*sDO + k1sD);
                     
                 otherwise 
                     error('wrong timestepper')
             end
-        end
-        
+        end       
         
     end 
+    
+    methods (Static)
+       function mustBeSurface(obj)     
+           %MUSTBEMETRIC Errors if the passed object is not an instance of 
+           %RiemannSurface or of a subclass of RiemannSurface.
+           if (~isa(obj,'RiemannSurface'))
+               error("Value must be a RiemannSurface.");
+           end
+       end  
+       
+    end
 end
 
 

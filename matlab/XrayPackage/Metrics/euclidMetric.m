@@ -33,6 +33,11 @@ classdef euclidMetric < Metric
             curvt = s;
         end
 
+        
+        function [xO,yO,zO] = deproject(obj,X,Y)
+            xO = X;   yO = Y;   zO = zeros(size(X));
+        end   
+        
     end
 end
 

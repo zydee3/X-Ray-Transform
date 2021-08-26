@@ -1,10 +1,6 @@
-classdef eatonMetric < Metric
+classdef eaton180Metric < Metric
     %UNTITLED Summary of this class goes here
     %   Detailed explanation goes here
-    
-    properties
-
-    end
     
     methods
         
@@ -26,26 +22,36 @@ classdef eatonMetric < Metric
        
         
         function [lgt,dxlgt,dylgt] = metricVals(obj, X, Y)
-            srxy2u2 = 2./ sqrt( max(min(X.*X+Y.*Y, zeros(size(X))+4 ),zeros(size(X))) );
+            lgt = zeros(size(X));
+            dxlgt = lgt;
+            dylgt = lgt;
             
-            lgt = log(srxy2u2 - 1);
-            dxlgt = -X.*srxy2u2.^3./(4*srxy2u2 - 4);
-            dylgt = -Y.*srxy2u2.^3./(4*srxy2u2 - 4);
+            r = sqrt(X.*X+Y.*Y);
+            
+            bool = r < 1;
+            r = r(bool);
+
+            lgt(bool) = log(2./r-1);
+            dxlgt(bool) = -2*exp(-lgt(bool)).*X(bool)./r.^3;
+            dylgt(bool) = -2*exp(-lgt(bool)).*Y(bool)./r.^3;
         end
-        
         
         function [lgt,dxlgt,dylgt,curvt] = metricValsCurv(obj, X, Y)
+            lgt = zeros(size(X));
+            dxlgt = lgt;
+            dylgt = lgt;
             
-            srxy2 = sqrt( max(min(X.*X+Y.*Y, zeros(size(X))+4 ),zeros(size(X))) );
+            r = sqrt(X.*X+Y.*Y);
             
-            lgt = log(2./srxy2-1);
-            dxlgt = -2.*X./(srxy2.^3.*(2./srxy2-1));
-            dylgt = -2.*Y./(srxy2.^3.*(2./srxy2-1));
+            bool = r < 1;
+            r = r(bool);
 
-            curvt = 1./(2-srxy2).^3;
+            lgt(bool) = real(log(2./r-1));
+            dxlgt(bool) = real(-2*exp(-lgt(bool)).*X(bool)./r.^3);
+            dylgt(bool) = real(-2*exp(-lgt(bool)).*Y(bool)./r.^3);
+            curvt(bool) = real(1./(2-r).^3);
                         
-        end
-        
+        end        
         
     end
 end

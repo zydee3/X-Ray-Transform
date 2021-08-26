@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.6.28 NEXT) (preloaded format=pdflatex 2021.8.22)  22 AUG 2021 13:30
+This is pdfTeX, Version 3.141592653-2.6-1.40.23 (MiKTeX 21.6.28 NEXT) (preloaded format=pdflatex 2021.8.22)  23 AUG 2021 03:13
 entering extended mode
 **./document.tex
 (document.tex
@@ -425,61 +425,56 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
 {C:/Users/neff1/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}]
 LaTeX Font Info:    Trying to load font information for OT1+qcr on input line 1
-33.
+32.
 
 (C:\Users\neff1\AppData\Local\Programs\MiKTeX 2.9\tex/latex/tex-gyre\ot1qcr.fd
 File: ot1qcr.fd 2009/09/25 v1.2 font definition file for OT1/qcr
 )
-Overfull \hbox (23.99998pt too wide) in paragraph at lines 132--135
+Overfull \hbox (23.99998pt too wide) in paragraph at lines 136--141
  [] 
  []
 
 
-Overfull \hbox (23.99998pt too wide) in paragraph at lines 136--142
- [] 
+Underfull \hbox (badness 10000) in paragraph at lines 175--175
+[]|\OT1/qcr/m/n/8 smoothDomain(radius, sides, bevel-Ra-
+ []
+
+[2] [3] [4]
+Underfull \hbox (badness 10000) in paragraph at lines 215--215
+[]|\OT1/qcr/m/n/8 RiemannSurface([][], step-
  []
 
 
-Overfull \hbox (0.5108pt too wide) in paragraph at lines 144--149
+Overfull \hbox (23.99998pt too wide) in paragraph at lines 219--223
  [] 
  []
 
-[2] [3]
-Overfull \hbox (23.99998pt too wide) in paragraph at lines 187--190
- [] 
- []
-
-
-Overfull \hbox (23.99998pt too wide) in paragraph at lines 191--196
- [] 
- []
-
-[4] [5] [6] [7] [8] (document.aux)
+[5] [6] [7] [8] (document.aux)
 Package rerunfilecheck Info: File `document.out' has not changed.
-(rerunfilecheck)             Checksum: E43CAAD30464314A15F09DF687D00470;2165.
+(rerunfilecheck)             Checksum: B122095CD3027532F2460EDF6702D2FC;2175.
  ) 
 Here is how much of TeX's memory you used:
- 9402 strings out of 478869
- 138682 string characters out of 2846878
- 452800 words of memory out of 3000000
+ 9411 strings out of 478869
+ 138849 string characters out of 2846878
+ 454799 words of memory out of 3000000
  27158 multiletter control sequences out of 15000+600000
- 410397 words of font info for 54 fonts, out of 8000000 for 9000
+ 410071 words of font info for 53 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 60i,10n,66p,422b,415s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 60i,10n,66p,422b,333s stack positions out of 5000i,500n,10000p,200000b,80000s
 {C:/Users/neff1/AppData/Local/Programs/MiKTeX 2.9/fonts/enc/dvips/tex-gyre/q-
 rmm.enc}<C:/Users/neff1/AppData/Local/Programs/MiKTeX 2.9/fonts/type1/public/am
 sfonts/cm/cmbx10.pfb><C:/Users/neff1/AppData/Local/Programs/MiKTeX 2.9/fonts/ty
 pe1/public/amsfonts/cm/cmbx12.pfb><C:/Users/neff1/AppData/Local/Programs/MiKTeX
- 2.9/fonts/type1/public/amsfonts/cm/cmmi9.pfb><C:/Users/neff1/AppData/Local/Pro
+ 2.9/fonts/type1/public/amsfonts/cm/cmmi8.pfb><C:/Users/neff1/AppData/Local/Pro
 grams/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/neff1/AppDa
 ta/Local/Programs/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr6.pfb><C:/Users/
-neff1/AppData/Local/Programs/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr9.pfb
+neff1/AppData/Local/Programs/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmr8.pfb
 ><C:/Users/neff1/AppData/Local/Programs/MiKTeX 2.9/fonts/type1/public/amsfonts/
 cm/cmsy6.pfb><C:/Users/neff1/AppData/Local/Programs/MiKTeX 2.9/fonts/type1/publ
 ic/tex-gyre/qcrr.pfb>
-Output written on document.pdf (8 pages, 151963 bytes).
+Output written on document.pdf (8 pages, 161615 bytes).
 PDF statistics:
- 202 PDF objects out of 1000 (max. 8388607)
- 45 named destinations out of 1000 (max. 500000)
+ 212 PDF objects out of 1000 (max. 8388607)
+ 54 named destinations out of 1000 (max. 500000)
  105 words of extra memory for PDF output out of 10000 (max. 10000000)
 

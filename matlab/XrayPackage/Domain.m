@@ -20,28 +20,28 @@ classdef Domain
 %%                 Constructor, Characteristic Functions
 %--------------------------------------------------------------------------  
 
-        function out = bdr(obj,th)
+        function out = bdr(obj,Th)
             %BDR Computes a position of a point of the boundry in polar
             %coordinates.
             %   Method uses the function handle obj.bdrVAR if not 
             %   overwritten by a subclass. 
-            out = obj.bdrVAR(th);
+            out = obj.bdrVAR(Th);
         end
         
-        function out = dbdr(obj,th)
+        function out = dbdr(obj,Th)
             %DBDR Derivative of obj.bdr.
             %   Method computes the derivative numerically from obj.bdr if not
             %   overwritten by a subclass.
             warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
-            out = deriv(@(t) obj.bdr(t), th);
+            out = deriv(@(t) obj.bdr(t), Th);
         end
         
-        function out = ddbdr(obj,th)
+        function out = ddbdr(obj,Th)
             %DDBDR Second derivative of obj.bdr.
             %   Method computes the derivatives numerically from obj.bdr if not
             %   overwritten by a subclass.
             warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
-            out = dderiv(@(t) obj.bdr(t), th);
+            out = dderiv(@(t) obj.bdr(t), Th);
         end
         
                 
@@ -71,6 +71,16 @@ classdef Domain
             
             %warning('Method "getMinRadius" is slow, consider overriding.'); % see comment for getBoundingBox
             minR = min(obj.bdr(linspace(0,2*pi, 1000)));
+        end 
+        
+        function minR = getMaxRadius(obj) 
+            %GETMAXRADIUS Returns the maximum value of obj.bdr on the
+            %interval [0,2pi].
+            %   Commputation is numerical and potentially inaccurate if not
+            %   overwritten by a subclass.
+            %   See obj.getMinRadius.
+            
+            minR = max(obj.bdr(linspace(0,2*pi, 1000)));
         end 
         
         
@@ -110,8 +120,9 @@ classdef Domain
             bool = XY2 <= r;
             
             if (any(~bool))
-                r = obj.bdr(atan2(Y(bool),X(bool)) - obj.theta);
-                bool(bool) = XY2(bool) <= r.*r;
+                i = find(~bool);
+                r = obj.bdr(atan2(Y(i),X(i)) - obj.theta);
+                bool(i) = XY2(i) <= r.*r;
             end
         end
         
@@ -194,7 +205,7 @@ classdef Domain
             maxB(2) = max(eSamples);
         end 
 
-        function [xO,yO] = aabbgrid(obj,resoX,resoY)
+        function [xO,yO] = aabbspace(obj,resoX,resoY)
             %GRIDAABB generates an input for meshgrid or ngrid using obj.getBoundingBox
             arguments
                 obj
@@ -203,8 +214,8 @@ classdef Domain
             end
 
             [minB,maxB] = obj.getBoundingBox; 
-            xO = linspace(minB(1),maxB(1),resoX);
-            yO = linspace(minB(2),maxB(2),resoY);
+            xO = linspace(minB(1),maxB(1),resoX)+obj.originX;
+            yO = linspace(minB(2),maxB(2),resoY)+obj.originY;
         end
 
         
@@ -222,16 +233,7 @@ classdef Domain
             obj.originY = yoff;
             obj.theta = rot;
         end    
-        
-        
-        function [bdr,dbdr,ddbdr] = getHandles(obj)
-            %METRICVALSCURV Returns bdr, dbdr, and ddbdr as function
-            %handles.
-            bdr = @(t) obj.bdr(t);
-            dbdr = @(t) obj.dbdr(t);
-            ddbdr = @(t) obj.ddbdr(t);
-        end 
-           
+                   
         
 %--------------------------------------------------------------------------
 %%                                Plotters
@@ -303,16 +305,16 @@ classdef Domain
             y0 = obj.originY;
             r = obj.bdr(th - th0);
             an = obj.alNormal(th) + th0;
-            pointX = cos(th) .* r + x0;
-            pointY = sin(th) .* r + y0;
+            px = cos(th) .* r + x0;
+            py = sin(th) .* r + y0;
             [minB,maxB] = obj.getBoundingBox();
             als = 0.012*sum(abs(maxB-minB));
                         
-            plot([pointX; pointX + als*cos(an)],...
-                 [pointY; pointY + als*sin(an)],...
+            plot([px; px + als*cos(an)],...
+                 [py; py + als*sin(an)],...
                  'b');
             
-            plot(pointX,pointY,'b');
+            plot(px,py,'b');
             if (~holdBool), hold off; end;
         end
                 
@@ -355,6 +357,7 @@ classdef Domain
             if (~holdBool), hold off; end;
         end
         
+%--------------------------------------------------------------------------              
        
     end
     

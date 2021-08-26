@@ -1,7 +1,7 @@
 
 
-dom = circleDomain(radius=1.5);
-met = euclidMetric();%(radius=1.7);
+dom = polygonDomain(radius = 7, sides = 4); dom.theta = pi/4; 
+met = eatonMazeMetric();%(radius=1.7);
 
 func = @(x,y) double(x.^2+y.^2 < 0.5^2);
 

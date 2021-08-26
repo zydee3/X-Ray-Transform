@@ -35,11 +35,10 @@ classdef sphereMetric < Metric
         
         function [lgt,dxlgt,dylgt] = metricVals(obj, X, Y)
             R2 = obj.radius*obj.radius;
-            s = (R2 + X.*X + Y.*Y);
-            
-            lgt = log((4*R2*R2) ./ (s.*s));
-            dxlgt = -4.*X./s;
-            dylgt = -4.*Y./s;
+
+            lgt = log((4*R2*R2) ./ (exp(2*log(R2 + X.*X + Y.*Y)) ));
+            dxlgt = -4*X./(R2 + X.*X + Y.*Y);
+            dylgt = -4*Y./(R2 + X.*X + Y.*Y);
         end
         
         
@@ -47,11 +46,20 @@ classdef sphereMetric < Metric
             R2 = obj.radius*obj.radius;
             %s = (R2 + X.*X + Y.*Y);
             
-            lgt = log((4*R2*R2) ./ ((R2 + X.*X + Y.*Y).^2));
+            lgt = log((4*R2*R2) ./ (exp(2*log(R2 + X.*X + Y.*Y)) ));
             dxlgt = -4*X./(R2 + X.*X + Y.*Y);
             dylgt = -4*Y./(R2 + X.*X + Y.*Y);
             curvt = ones(size(X))/R2;
         end
+        
+        
+        function [xO,yO,zO] = deproject(obj,X,Y)
+            r = obj.radius;
+            s = 1./(r*r+X.*X+Y.*Y);
+            xO = 2*r*r*X.*s;
+            yO = 2*r*r*Y.*s;
+            zO = r*(r*r-X.*X-Y.*Y).*s;
+        end   
         
     end
 end

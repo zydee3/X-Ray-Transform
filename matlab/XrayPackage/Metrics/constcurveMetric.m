@@ -52,7 +52,17 @@ classdef constcurveMetric < Metric
             curvt = 4*k*ones(size(X));
         end
         
-        
+        %{
+        function [xO,yO,zO] = deproject(obj,X,Y)
+            k = 1/(4*obj.kappa); % = R^2
+            if (k < 0); error('Constant-negative surfaces cannot be represented in R3.'); end
+            
+            s = 1./(k+X.*X+Y.*Y);
+            xO = 2*k*X.*s;
+            yO = 2*k*Y.*s;
+            zO = sqrt(k)*(k-X.*X-Y.*Y).*s;
+        end 
+        %}
     end
 end
 
