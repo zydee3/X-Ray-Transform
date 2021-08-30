@@ -7,7 +7,7 @@ clc, close all, clear
         R = pi/3;
         dc = circleDomain(radius = R);
         ms = euclidMetric;
-        rsurf = RiemannSurface(dc,ms, stepSize = 0.1, stepType = 'RK4');
+        rsurf = RiemannSurface(dc,ms, stepSize = 0.01, stepType = 'RK4');
 
 
     % initialize some functions
@@ -45,7 +45,7 @@ clc, close all, clear
         toc
         
     % run I0_interp, slinearC
-        dc.exitInterpType = 'slinearC';
+        dc.exitInterpType = 'squad';
         rsurf.domain=dc;
         tic
         i0Data3 = rsurf.I0_scatt(betaG,alphaG, func_uncropped);
@@ -75,7 +75,7 @@ clc, close all, clear
             pl = pcolor(betaG,alphaG, abs(i0Data3 - truexray(betaG,alphaG)));
             pl.EdgeColor = 'none';
             colorbar;
-            title('I0 slinearB')
+            title('I0 squad')
 
             
         
@@ -109,7 +109,7 @@ clc, close all, clear
             pl = pcolor(betaG,alphaG, abs(i0Data3 - truexray(betaG,alphaG)));
             pl.EdgeColor = 'none';
             colorbar;
-            title('I0 slinearB')
+            title('I0 squad')
             
             %{
         figure; sgtitle('I0 errors, alpha on [-pi/8,pi/8]')

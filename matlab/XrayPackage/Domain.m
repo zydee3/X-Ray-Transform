@@ -32,7 +32,7 @@ classdef Domain
             %DBDR Derivative of obj.bdr.
             %   Method computes the derivative numerically from obj.bdr if not
             %   overwritten by a subclass.
-            warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
+            %warning('Default derivatives are very inefficient, consider overriding with explicit implementations.')
             out = deriv(@(t) obj.bdr(t), Th);
         end
         
@@ -144,41 +144,49 @@ classdef Domain
                     tO = (funcin)./( mOut-obj.bdr(btOut) +funcin);
 
                     betaO = mod((btOut-btIn).*tO + btIn,2*pi);
-                case 'slinearB'
-                    weight = 0.4;
-                    xint = (xout-xin)*weight+xin; yint = (yout-yin)*weight+yin;
+               case 'squad'
+                    xm = (xin + xout)/2;   ym = (yin + yout)/2; 
                     
-                    mIn = sqrt(xint.*xint + yint.*yint);
+                    mIn = sqrt(xin.*xin + yin.*yin);
+                    mM = sqrt(xm.*xm + ym.*ym);
                     mOut = sqrt(xout.*xout + yout.*yout);
-                    [btIn,btOut] = atan2near(yint, xint, yout, xout);
-                    funcin = -mIn+obj.bdr(btIn);
                     
-                    tO = (funcin)./( mOut-obj.bdr(btOut) +funcin);
+                    [btIn,btOut] = atan2near(yin, xin, yout, xout);
+                    btM = (btOut + btIn)/2;
+                    
+                    fIn = obj.bdr(btIn);
+                    fM = obj.bdr(btM);
+                    fOut = obj.bdr(btOut);
+                    
+                    % more values
+                    h = (btIn-btOut);
+                    v = (fIn - mIn + mOut - fOut)./h;
+                    A = (fIn + fOut - mIn - mOut + 2*(mM - fM))./(h.*h);
+                    B = (v - A.*(btIn+btOut));
+                    C = (fIn - mIn + btIn.*(A.*btOut-v));
+                    
+                    sq = sqrt(B.*B - 4*A.*C);
+                    
+                    sze = size(xin);
+                                        
+                    mB = min(btOut,btIn);   MB = max(btOut,btIn);
+                    % set beta
+                    betaO = zeros(sze) + btIn;
 
-                    betaO = mod((btOut-btIn).*tO + btIn,2*pi);    
-                    alphaO = -obj.alNormal(betaO) + atan2(yout-yin,xout-xin) + pi;
+                    b0 = (-B + sq)./(2*A);
                     
-                    tO = (tO.*(1-weight) + weight);
-                    return;
-                        
-                case 'slinearC'
-                    weight = 0.273;
-                    xint = (xout-xin)*weight+xin; yint = (yout-yin)*weight+yin;
-                    xout = (xin-xout)*weight+xout; yout = (yin-yout)*weight+yout;
+                    bool = b0 < MB & b0 > mB;
+                    betaO(bool) = b0(bool);
                     
-                    mIn = sqrt(xint.*xint + yint.*yint);
-                    mOut = sqrt(xout.*xout + yout.*yout);
-                    [btIn,btOut] = atan2near(yint, xint, yout, xout);
-                    funcin = -mIn+obj.bdr(btIn);
+                    b0 = (-B - sq)./(2*A);
+                    bool = b0 < MB & b0 > mB;
+                    betaO(bool) = b0(bool);
+                                                            
+                    %set time
+                    tO = (betaO-btIn)./(btOut-btIn);
                     
-                    tO = (funcin)./( mOut-obj.bdr(btOut) +funcin);
-
-                    betaO = mod((btOut-btIn).*tO + btIn,2*pi);    
-                    alphaO = -obj.alNormal(betaO) + atan2(yout-yin,xout-xin) + pi;
-                    
-                    tO = (tO.*(1-2*weight) + weight);
-                    return;
-                    
+                    betaO = mod(betaO,2*pi);
+                                        
                 otherwise 
                     error('wrong interpolation method')
             end

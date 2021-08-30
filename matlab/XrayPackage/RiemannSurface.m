@@ -61,11 +61,11 @@ classdef RiemannSurface
             betaO = NaN(sze);
             spart = 0;
             betapart = 0;
-            
+                        
             i = 0;
+            sD = 1;
             while i ~= length(S) % loop over lengths in order
                 
-                sD = 1;
                 i = i+1;
                 
                 while spart < S(i)
@@ -97,10 +97,9 @@ classdef RiemannSurface
             sO = NaN(sze);
             spart = 0;
             betapart = 0;
+            sD = 0;            
             
             for i = 1:length(Beta) % loop over betas in order
-                
-                sD = 0;
                 
                 while betapart < Beta(i)
                     sD = obj.arcLengthStep(betapart, h);
@@ -702,8 +701,7 @@ classdef RiemannSurface
             % output is interpolated samples of fft output
             
             sze = size(Beta);
-            ubt = unique(Beta(:)');
-            nbt = length(ubt);
+            ubt = unique(reshape(Beta,[],1))';
             
             al = linspace(-pi/2,3*pi/2,nal2*2);
             Alpha = mod(Alpha+pi/2,2*pi)-pi/2;
@@ -733,7 +731,7 @@ classdef RiemannSurface
             alphaO = Alpha;
         end  
         
-        function [fDataO, betaO,alphaO] = geoR_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt)
+        function [fDataO, Beta,Alpha] = geoR_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt, nal2)
             
             % A operator
             po2 = pi/2;
@@ -741,14 +739,29 @@ classdef RiemannSurface
             bscatt = mod(BetaScatt, 2*pi);
             ascatt = mod(AlphaScatt+po2,pi)-po2;
             
-            fDataO = [func(Beta,Alpha), sign*func(bscatt, ascatt)];
-            betaO = [Beta, Beta];
-            alphaO = [Alpha, ascatt+pi];
+            fData = [func(Beta,Alpha), -func(bscatt, ascatt)];
+                           
+            intF = scatteredInterpolant(reshape([Beta, Beta],[],1),...
+                                        reshape([Alpha, ascatt+pi],[],1),...
+                                        reshape(fData,[],1));
             
-            % Hilbert
+            % Hilbert + A* operator
             
+            ubt = unique(reshape(Beta,[],1))';
+            fDataO = zeros(size(Beta));
+            al = linspace(-pi/2,3*pi/2,nal2*2);
+            H = 2*nal2*[-1j*ones(1,nal2), 1j*ones(1,nal2)];
             
-            % A* operator
+            for bt = ubt
+                alind = (bt == Beta); 
+                
+                HAbt = ifft(H .* fft( intF(mod(ones(1,nal2*2),2*pi)*bt,al), nal2*2 ) ) /(nal2*2);
+                
+                fDataO(alind) = interp1(al, HAbt, Alpha(alind), 'linear') + ...
+                                interp1(al, HAbt, ascatt(alind) + pi, 'linear');
+            end
+            
+            fDataO = real(fDataO);
             
         end    
         
@@ -1551,51 +1564,52 @@ classdef RiemannSurface
             dom = obj.domain;
             xoff = dom.originX; yoff = dom.originY;
             type = obj.stepType;
+            th0 = dom.theta;
             
             switch type
                 case 'EE' % Explicit Euler  ------------------------------------------------- ArcStep
                     cth = cos(Beta); sth = sin(Beta);
-                    b = dom.bdr(Beta);
-                    db = dom.dbdr(Beta);
+                    b = dom.bdr(Beta-th0);
+                    db = dom.dbdr(Beta-th0);
                                         
                     sDO = h * exp(0.5*met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
                     
                 case 'IE' % Trapazoid rule  ------------------------------------------------- ArcStep
                     % left sample
                     cth = cos(Beta); sth = sin(Beta);
-                    b = dom.bdr(Beta);
-                    db = dom.dbdr(Beta);
+                    b = dom.bdr(Beta-th0);
+                    db = dom.dbdr(Beta-th0);
                                         
                     sDO = exp(0.5*met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
                     
                     % right sample
                     Beta = Beta + h;
                     cth = cos(Beta); sth = sin(Beta);
-                    b = dom.bdr(Beta);
-                    db = dom.dbdr(Beta);
+                    b = dom.bdr(Beta-th0);
+                    db = dom.dbdr(Beta-th0);
                     
                     sDO = hovr * (0.5*exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db) + sDO);
                 case 'RK4' % Simpsons Rule  ------------------------------------------------- ArcStep
                     % left sample
                     cth = cos(Beta); sth = sin(Beta);
-                    b = dom.bdr(Beta);
-                    db = dom.dbdr(Beta);
+                    b = dom.bdr(Beta-th0);
+                    db = dom.dbdr(Beta-th0);
                                         
                     k1sD = exp(0.5*met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
                     
                     % middle sample
                     Beta = Beta + hovr;
                     cth = cos(Beta); sth = sin(Beta);
-                    b = dom.bdr(Beta);
-                    db = dom.dbdr(Beta);
+                    b = dom.bdr(Beta-th0);
+                    db = dom.dbdr(Beta-th0);
                     
                     sDO = exp(0.5*met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db);
                     
                     % right sample                    
                     Beta = Beta + hovr;
                     cth = cos(Beta); sth = sin(Beta);
-                    b = dom.bdr(Beta);
-                    db = dom.dbdr(Beta);
+                    b = dom.bdr(Beta-th0);
+                    db = dom.dbdr(Beta-th0);
                     
                     sDO = h/6 * (0.5*exp(met.lg(cth.*b+xoff, sth.*b+yoff)) .* sqrt(b.*b + db.*db) + 4*sDO + k1sD);
                     

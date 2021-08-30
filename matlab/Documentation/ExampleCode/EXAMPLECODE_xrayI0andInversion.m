@@ -7,7 +7,7 @@ clc, close all, clear
         dc = circleDomain(radius = 1.3);
             %dc.exitInterpType = 'slinear';
         ms = sphereMetric(radius = 2);
-        rsurf = RiemannSurface(dc,ms, stepSize = 0.01, stepType = 'RK4');
+        rsurf = RiemannSurface(dc,ms, stepSize = 0.05, stepType = 'RK4');
 
 
     % initialize some functions
@@ -60,7 +60,7 @@ clc, close all, clear
         pl.EdgeColor = 'none';
         title('I0')
 
-
+%{.
 %% I0 Inversion (I0perp*, geoA*, Hilbert, geoA of I0)
         
     % initialize points to transform over and precompute scattering relation
@@ -85,7 +85,7 @@ clc, close all, clear
             pl = pcolor(betaO,alphaO,aData);
             pl.EdgeColor = 'none';
             title('AI0f');
-            %}
+            %}.
         
     % geoHilbert
         disp('H');    
@@ -117,7 +117,7 @@ clc, close all, clear
             pl = pcolor(betaO,alphaO,astarData);
             pl.EdgeColor = 'none';
             title('A*HAI0f');
-            %}
+            %}.
       
     % I0perpstar
         % initialize points to reconstruct at (we could just re-use the points used to plot the original function)
@@ -126,21 +126,39 @@ clc, close all, clear
         disp('Backproject I0_perp^*');   
         rsurf.stepType = 'RK4';
         tic
-            funcData = rsurf.I0perpstar(AstarHAI0f, VX,VY, 40)/(8*pi); % !!!!TODO!!!! why is this division by 8 as opposed to division by 2?
+            %funcData = rsurf.I0perpstar(AstarHAI0f, VX,VY, 40)/(8*pi); % !!!!TODO!!!! why is this division by 8 as opposed to division by 2?
         toc
 
 
      %plot reconstructed function
-        %{.
+        %{
         figure, hold on, axis equal
         pl = pcolor(VX,VY,funcData);
         pl.EdgeColor = 'none';
         title('reconstruction');
-        %}
+        %}.
      %plot error
         %{.
         figure, hold on, axis equal
         pl = pcolor(VX,VY,abs(funcData-func0(VX,VY)));
         pl.EdgeColor = 'none';
         title('error');
-        %}
+        %}.
+%}     
+        
+%% I0 Inversion (I0perp*, geoR of I0)      
+        beta = linspace(0,2*pi,200);
+        alpha = linspace(-pi,pi,200+2)*0.5;   alpha = alpha(2:end-1);
+        [VBeta,VAlpha] = ndgrid(beta, alpha);    
+        [VBetaS,VAlphaS] = rsurf.scatteringRelation(VBeta,VAlpha);
+
+        disp('R');
+        [aData,betaO,alphaO] = rsurf.geoR_precomp(VBeta,VAlpha,I0f, VBetaS,VAlphaS, 100);
+        
+        AI0f = griddedInterpolant(betaO,alphaO,aData);
+
+
+                figure, hold on, axis equal
+        pl = pcolor(betaO,alphaO,aData);
+        pl.EdgeColor = 'none';
+        title('R');

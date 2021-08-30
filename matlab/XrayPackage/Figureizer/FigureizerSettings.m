@@ -1,37 +1,44 @@
 classdef FigureizerSettings < handle
     
     properties
-        funcColormap = uint8([linspace(150,256,256)',...
-                      linspace(150,256,256)',...
-                      linspace(150,256,256)'])
+        funcColormap = uint8([linspace(256,100,256);...
+                      linspace(256,100,256);...
+                      linspace(256,100,256)]')
+        deprojSaturation = 0.5    
                   
         domainColor = uint8([0, 0, 255])
-        penColor = uint8([255, 0, 0])
-        linestyle = '-'
-        pointstyle = '*'
+        domainStyle = '-'
+        domainThickness = 0.8
         
-        gridResolution = 500;
+        penColor = uint8([255, 0, 0])
+        penStyle = '*'
+        penThickness = 0.6
+        
+        gridResolution = 150;
         plotCenterType = 'default' % or use 'domain'
         
-        domainResolution = 250;
-        betaspacing = 'default' % or use 'arclength' or 'euclid'
-        alnormalspacing = 'default' % or use 'arclength', 'betas' or 'euclid'
+        domainResolution = 150;
+        betaSpacing = 'default' % or use 'arclength' or 'euclid'
         
     end
     
     methods (Static)
-        function sett = default()
+        function sett = classic()
             sett = FigureizerSettings;
         end
         
-        function sett = summer()
+        function sett = autumn()
             sett = FigureizerSettings;
         end
     end
     
     methods
-        function swapSettings(newSettings)
+        function swapSettings(obj,newSettings)
             
+        end
+        
+        function reset(obj)
+            obj.swapSettings(FigureizerSettings)
         end
         
     end
