@@ -1,5 +1,5 @@
 %% To construct a sphere metric:
-%(Domain and metric are coded in basically the same way)
+%(Domain and metric have been coded in basically the same way)
 
     R = 0.7;
 

@@ -17,7 +17,7 @@ classdef Domain
     methods
         
 %--------------------------------------------------------------------------
-%%                 Constructor, Characteristic Functions
+%%                 Constructor, Characteristic Functions                   
 %--------------------------------------------------------------------------  
 
         function out = bdr(obj,Th)
@@ -58,7 +58,7 @@ classdef Domain
    
     
 %--------------------------------------------------------------------------
-%%                                  Misc
+%%                                  Misc                                   
 %--------------------------------------------------------------------------      
 
        
@@ -129,11 +129,23 @@ classdef Domain
         function [betaO,alphaO, tO] = exitInterp(obj, xin,yin, xout,yout)
             % constructs betaO,alphaO from an interpolant described by a
             % pair of points.
-
+            
+            %TODO: redo this whole method to better consider transformed
+            %domain
+            % transform things because im dumb, TODO: dont do this/integrate this into the methods
+            %xint = xin;   xoutt = xout;
+            
+            %cth = cos(-obj.theta);   sth = sin(-obj.theta);
+            %xin = cth * xint - sth * yin;
+            %xout = cth * xoutt - sth * yout;
+            %yin = cth * yin + sth * xint;
+            %yout = cth * yout + sth * xoutt;
+            
+            % do the actual interpolation bit
             switch obj.exitInterpType
                 case 'last'
                     tO = 1;
-                    betaO = atan2(yout,xout);
+                    betaO = atan2(yout,xout); %+ obj.theta;
                     
                 case 'slinear'
                     mIn = sqrt(xin.*xin + yin.*yin);
@@ -141,9 +153,9 @@ classdef Domain
                     [btIn,btOut] = atan2near(yin, xin, yout, xout);
                     
                     funcin = -mIn+obj.bdr(btIn);
-                    tO = (funcin)./( mOut-obj.bdr(btOut) +funcin);
+                    tO = (funcin)./( mOut-obj.bdr(btOut - obj.theta) +funcin);
 
-                    betaO = mod((btOut-btIn).*tO + btIn,2*pi);
+                    betaO = mod((btOut-btIn).*tO + btIn + obj.theta,2*pi);
                case 'squad'
                     xm = (xin + xout)/2;   ym = (yin + yout)/2; 
                     
@@ -181,7 +193,10 @@ classdef Domain
                     b0 = (-B - sq)./(2*A);
                     bool = b0 < MB & b0 > mB;
                     betaO(bool) = b0(bool);
-                                                            
+                    
+                    % detransform
+                    betaO = betaO + obj.theta;
+                    
                     %set time
                     tO = (betaO-btIn)./(btOut-btIn);
                     
@@ -190,7 +205,7 @@ classdef Domain
                 otherwise 
                     error('wrong interpolation method')
             end
-            alphaO = -obj.alNormal(betaO) + atan2(yout-yin,xout-xin) + pi;
+            alphaO = -obj.alNormal(betaO) + atan2(yout-yin,xout-xin) + pi; %+ obj.theta;
         end
         
         
@@ -244,7 +259,7 @@ classdef Domain
                    
         
 %--------------------------------------------------------------------------
-%%                                Plotters
+%%                                Plotters                                 
 %--------------------------------------------------------------------------              
     
         function out = plot(obj)

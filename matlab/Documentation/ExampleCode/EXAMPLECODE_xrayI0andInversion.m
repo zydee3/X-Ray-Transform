@@ -1,18 +1,30 @@
+%% clear everything and set up plotting settings
 clc, close all, clear
 
+sett = Figureizer.settings;
+sett.swapSettings(FigureizerSettings.classic);
+sett.gridResolution = 80;
 
 %% initialization
 
     % begin by initializing a surface (see EXAMPLECODE_initializeSurface)
         dc = circleDomain(radius = 1.3);
-            %dc.exitInterpType = 'slinear';
-        ms = sphereMetric(radius = 2);
-        rsurf = RiemannSurface(dc,ms, stepSize = 0.05, stepType = 'RK4');
+        %dc = smoothpolyDomain(radius = 1.3, sides = 5, bevelRadius = 0.2);
+            %dc.exitInterpType = 'squad';
+            dc.theta = 0.2 + pi/2;
+            dc.originY = 0;
+            dc.originX = -1;
+        ms = sphereMetric(radius = 1.7);
+        rsurf = RiemannSurface(dc,ms, stepSize = 0.01, stepType = 'RK4');
 
 
     % initialize some functions
         
-        func0 = @(x,y)  exp(-((x-0).^2 + (y-0.5).^2) / 0.1) - exp(-((x-0.3).^2 + (y-0.5).^2) / 0.1);
+        func0 = @(x,y)  1*exp(-1./(1-min((x-0).^2*9 + (y-0.3).^2*9,1)) + 1) + ...
+                        0.7*exp(-1./(1-min((x+0.2).^2*3 + (y-0.1).^2*3,1)) + 1) - ...
+                        1*exp(-1./(1-min((x-0.3).^2*9 + (y-0.4).^2*9,1)) + 1) - ...
+                        0.7*exp(-1./(1-min((x+0.2).^2*13 + (y+0.1).^2*13,1)) + 1);
+        %func0 = @(x,y)  1*exp(-((x-0).^2 + (y-0.3).^2) / 0.2) - exp(-((x-0.3).^2 + (y-0.5).^2) / 0.1);
         %func0 = @(x,y) double(((x-0.2).^2 + abs(y-0.1)) < 0.5); 
         
         
@@ -24,15 +36,8 @@ clc, close all, clear
 
     % plot function under domain
         %{.
-        figure, hold on, axis equal
-        [minB,maxB] = dc.getBoundingBox();
-
-        [VX,VY] = ndgrid(dc.aabbspace(250));
-        pl = pcolor(VX,VY,func0(VX,VY));
-        pl.EdgeColor = 'none';
-
-        rsurf.plotGeoFan(0);
-        dc.plotAlNormal;
+        Figureizer.figure(rsurf,func0);
+        Figureizer.plotGeoFan(rsurf,0,30);
         %}
 
 
@@ -46,32 +51,77 @@ clc, close all, clear
         [betaG,alphaG] = ndgrid(beta,alpha); % alternatively use meshgrid (doesnt work with griddedinterpolant or scatteredinterpolant)
 
     % run I0
+        disp('I0');
         tic
-        i0Data = rsurf.I0(betaG,alphaG, func0);
+            i0Data = rsurf.I0(betaG,alphaG, func0);
         toc
      
-    % convert the transformation to a useable function
+    % convert the data to a useable function
         I0f = griddedInterpolant(betaG,alphaG,i0Data);
 
     % plot XrayI0
-        figure;
-        %pl = pcolor(betaG,alphaG,i0Data);
-        pl = pcolor(betaG,alphaG,i0Data);
-        pl.EdgeColor = 'none';
+        Figureizer.figureGSpace(rsurf,I0f);
         title('I0')
 
 %{.
-%% I0 Inversion (I0perp*, geoA*, Hilbert, geoA of I0)
         
-    % initialize points to transform over and precompute scattering relation
-        beta = linspace(0,2*pi,200);
-        alpha = linspace(-pi,pi,200+2)*0.5;   alpha = alpha(2:end-1);
-        [VBeta,VAlpha] = ndgrid(beta, alpha);    
+%% initialize points to transform over and precompute scattering relation
+        beta = linspace(0,2*pi,120);
+        alpha = linspace(-pi,pi,120+2)*0.5;   alpha = alpha(2:end-1);
+        [VBeta,VAlpha] = ndgrid(beta, alpha);
         [VBetaS,VAlphaS] = rsurf.scatteringRelation(VBeta,VAlpha);
+        
+
+%% I0 Inversion (I0perp*, geoR of I0)      
+
+        % R
+            disp('R');
+            tic
+                %[aData,betaO,alphaO] = rsurf.geoR_precomp(VBeta,VAlpha,I0f, VBetaS,VAlphaS, 200);
+                [aData,betaO,alphaO] = rsurf.geoR_simple(VBeta,VAlpha,I0f, 200);
+            toc
+            
+            RI0f = griddedInterpolant(betaO,alphaO,aData);
+            
+            Figureizer.figureGSpace(rsurf,RI0f);
+            title('RI0f');
+        
+        % I0perpstar
+            % initialize points to reconstruct at (we could just re-use the points used to plot the original function)
+            [VX,VY] = dc.aabbspace(100);
+            [VX,VY] = ndgrid(VX,VY);
+
+            disp('Backproject I0_perp^*');   
+            rsurf.stepType = 'RK4';
+            tic
+                funcData = rsurf.I0perpstar(RI0f, VX,VY, 30)/(2*pi);
+            toc
+
+            reconstruct = griddedInterpolant(VX,VY,funcData);
+            error = griddedInterpolant(VX,VY,abs(funcData-func0(VX,VY)));
+
+         %plot reconstructed function
+            %{.
+            Figureizer.figure(rsurf,reconstruct);
+            title('reconstruction');
+            %}.
+         %plot error (disable forceMidZero for just this)
+            %{.
+            %sett.forceMidZero = false;
+            Figureizer.figure(rsurf,error);
+            %sett.forceMidZero = true;
+            title('error');
+            %}.
+%}
+
+%{.
+%% I0 Inversion (I0perp*, geoA*, Hilbert, geoA of I0)
 
     % geoA_precomp
         disp('A_-');
-        [aData,betaO,alphaO] = rsurf.geoA_precomp(VBeta,VAlpha,I0f, VBetaS,VAlphaS, -1);
+        tic
+            [aData,betaO,alphaO] = rsurf.geoA_precomp(VBeta,VAlpha,I0f, VBetaS,VAlphaS, -1);
+        toc
         
         % sorting step so that data is still in ndgrid format
         [alphaO, aind] = sort(alphaO(1,:));
@@ -79,17 +129,17 @@ clc, close all, clear
         aData = aData(:,aind);
         
         AI0f = griddedInterpolant(betaO,alphaO,aData);
-            %{.
-            figure, hold on
-            %pl = pcolor(VX,VY,funcData);
-            pl = pcolor(betaO,alphaO,aData);
-            pl.EdgeColor = 'none';
+        
+            %{
+            Figureizer.figureGSpace(rsurf,AI0f,alphaRange = [-pi,3*pi]/2);
             title('AI0f');
-            %}.
+            %}
         
     % geoHilbert
         disp('H');    
-        hData = rsurf.geoHilbert(betaO,alphaO,AI0f, 500);
+        tic
+            hData = rsurf.geoHilbert(betaO,alphaO,AI0f, 200);
+        toc
         HAI0f = griddedInterpolant(betaO,alphaO,hData);
             
             %{
@@ -102,63 +152,47 @@ clc, close all, clear
 
     % geoAstar_precomp
         disp('A_+^*');   
-        [astarData,betaO,alphaO] = rsurf.geoAstar_precomp(VBeta,VAlpha,HAI0f, VBetaS,VAlphaS, 1);
+        tic
+            [astarData,betaO,alphaO] = rsurf.geoAstar_precomp(VBeta,VAlpha,HAI0f, VBetaS,VAlphaS, 1);
+        toc 
         
         % sorting step so that data is in ndgrid format
         [alphaO, aind] = sort(alphaO(1,:));
         alphaO = repmat(alphaO,[height(betaO),1]);
         astarData = astarData(:,aind);
         
-        AstarHAI0f = griddedInterpolant(betaO,alphaO,astarData);
+        AstarHAI0f = griddedInterpolant(betaO,alphaO,astarData/4);
             
             %{.
-            figure, hold on
-            %pl = pcolor(VX,VY,funcData);
-            pl = pcolor(betaO,alphaO,astarData);
-            pl.EdgeColor = 'none';
+            Figureizer.figureGSpace(rsurf,AstarHAI0f);
             title('A*HAI0f');
             %}.
       
     % I0perpstar
         % initialize points to reconstruct at (we could just re-use the points used to plot the original function)
-        [VX,VY] = ndgrid(dc.aabbspace(100));
+        [VX,VY] = dc.aabbspace(100);
+        [VX,VY] = ndgrid(VX,VY);
         
         disp('Backproject I0_perp^*');   
         rsurf.stepType = 'RK4';
         tic
-            %funcData = rsurf.I0perpstar(AstarHAI0f, VX,VY, 40)/(8*pi); % !!!!TODO!!!! why is this division by 8 as opposed to division by 2?
+            funcData = rsurf.I0perpstar(AstarHAI0f, VX,VY, 30)/(2*pi);
         toc
-
+        
+        reconstruct = griddedInterpolant(VX,VY,funcData);
+        error = griddedInterpolant(VX,VY,abs(funcData-func0(VX,VY)));
 
      %plot reconstructed function
-        %{
-        figure, hold on, axis equal
-        pl = pcolor(VX,VY,funcData);
-        pl.EdgeColor = 'none';
+        %{.
+        Figureizer.figure(rsurf,reconstruct);
         title('reconstruction');
         %}.
-     %plot error
+     %plot error (disable forceMidZero for just this)
         %{.
-        figure, hold on, axis equal
-        pl = pcolor(VX,VY,abs(funcData-func0(VX,VY)));
-        pl.EdgeColor = 'none';
+        %sett.forceMidZero = false;
+        Figureizer.figure(rsurf,error);
+        %sett.forceMidZero = true;
         title('error');
         %}.
 %}     
-        
-%% I0 Inversion (I0perp*, geoR of I0)      
-        beta = linspace(0,2*pi,200);
-        alpha = linspace(-pi,pi,200+2)*0.5;   alpha = alpha(2:end-1);
-        [VBeta,VAlpha] = ndgrid(beta, alpha);    
-        [VBetaS,VAlphaS] = rsurf.scatteringRelation(VBeta,VAlpha);
 
-        disp('R');
-        [aData,betaO,alphaO] = rsurf.geoR_precomp(VBeta,VAlpha,I0f, VBetaS,VAlphaS, 100);
-        
-        AI0f = griddedInterpolant(betaO,alphaO,aData);
-
-
-                figure, hold on, axis equal
-        pl = pcolor(betaO,alphaO,aData);
-        pl.EdgeColor = 'none';
-        title('R');

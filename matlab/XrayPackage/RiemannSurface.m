@@ -29,7 +29,6 @@ classdef RiemannSurface
             obj.domain = domain;
             obj.metric = metric;
         end
-        
 %--------------------------------------------------------------------------
 %%                           Misc Helpers                                  
 %--------------------------------------------------------------------------        
@@ -51,7 +50,7 @@ classdef RiemannSurface
             h = betaStepSize; % perhaps replace this with obj.stepSize
             
             sze = size(S);
-            S = S(:);
+            S = reshape(S,[],1);
             if (~issorted(S))
                 S = sort(S);
                 warning('input lengths are not already sorted. expect unpredictable ordering')                
@@ -86,7 +85,7 @@ classdef RiemannSurface
             h = stepSize; % perhaps replace this with obj.stepSize
             
             sze = size(Beta);
-            Beta = Beta(:);
+            Beta = reshape(Beta,[],1);
             if (~issorted(Beta))
                 Beta = sort(Beta);
                 warning('input lengths are not already sorted. expect unpredictable ordering')
@@ -160,9 +159,12 @@ classdef RiemannSurface
             origX = dom.originX;
             origY = dom.originY;
             betaO = NaN(sze); alphaO = NaN(sze);
-            [betaO(noIPidx),alphaO(noIPidx), ~] = dom.exitInterp(X(noIPidx)-origX, Y(noIPidx)-origY,...
-                                                     xn(noIPidx)-origX,yn(noIPidx)-origY);
+            %[betaO(noIPidx),alphaO(noIPidx), ~] = dom.exitInterp(X(noIPidx)-origX, Y(noIPidx)-origY,...
+            %                                                    xn(noIPidx)-origX,yn(noIPidx)-origY);
            
+            betaO(noIPidx) = atan2(yn(noIPidx)-origY,xn(noIPidx)-origX);
+            alphaO(noIPidx) = thn(noIPidx) - dom.alNormal(betaO(noIPidx)) + pi - dom.theta;
+                                                            
         end            
                
         function [betaScattO,alphaScattO] = scatteringRelation(obj, Beta,Alpha)
@@ -255,7 +257,7 @@ classdef RiemannSurface
             % Reshape inputs
             tsze = size(X);
 
-            X = X(:);   Y = Y(:);   Th = Th(:);
+            X = reshape(X,[],1);   Y = reshape(Y,[],1);   Th = reshape(Th,[],1);
             
             dom = obj.domain;
             
@@ -424,76 +426,6 @@ classdef RiemannSurface
             
         end    
 
-        function [uDataO, betaScattO,alphaScattO] = I0_scatt(obj, Beta,Alpha, integrand)
-            %I0 Solves for the Xray transfrom of the given integrand along
-            %the geodesics described by Beta and Alpha.
-            %   The I0 function is associated with obj.geoStepI0.
-            sze = size(Beta);
-            
-            dom = obj.domain;
-
-            minR2 = dom.getMinRadius;
-            minR2 = minR2*minR2;
-
-            NMAX = floor(obj.geoDur/obj.stepSize) + 1;
-
-            % initialize (x,y,th,int)
-
-            ra = dom.bdr(Beta - dom.theta);
-            x = cos(Beta) .* ra + dom.originX;
-            y = sin(Beta) .* ra + dom.originY;
-
-            th = pi + Alpha + dom.alNormal(Beta) + dom.theta;
-            uDataO = zeros(sze);
-            
-            % initialize xn,yn,thn (ideally, these become the first steps that are outside the domain)
-            xn = zeros(sze);   yn = zeros(sze);   thn = zeros(sze);   uDatan = zeros(sze);
-
-            T = 1;
-
-            insidePoints = ones(size(Beta));
-            IPidx = find(insidePoints);%;dom.isInsideR2(X,Y,minR2);
-
-            while (T ~= NMAX) && (~isempty(IPidx))
-
-                % move the inside points forward, assume all values are
-                % inside for the first step
-                [xn(IPidx), yn(IPidx), thn(IPidx), uDatan(IPidx)] = ...
-                    obj.geoStepI0(x(IPidx),y(IPidx),th(IPidx), uDataO(IPidx),integrand);
-      
-                % march time forward, update x,y,th,uData only if they are still inside
-                T = T+1;    
-                insidePoints(IPidx) = dom.isInsideR2(xn(IPidx),yn(IPidx),minR2);
-                IPidx = find(insidePoints); 
-                
-                x(IPidx) = xn(IPidx);   y(IPidx) = yn(IPidx);   th(IPidx) = thn(IPidx);
-                uDataO(IPidx) = uDatan(IPidx);
-            end
-            
-            % search for the points that exited (just in case some points are trapped)
-            noIPidx = find(~dom.isInsideR2(xn,yn,minR2));   
-            
-            %compute/interpolate scattering relation from the exited points
-            origX = dom.originX;
-            origY = dom.originY;
-            [betaScattO,alphaScattO, T] = dom.exitInterp(x(noIPidx)-origX, y(noIPidx)-origY,...
-                                                     xn(noIPidx)-origX,yn(noIPidx)-origY);
-            
-            %interpolate and reintroduce the last partial integral
-            uDataO(noIPidx) = (uDatan(noIPidx) - uDataO(noIPidx)).*T + uDataO(noIPidx);
-            
-            %reintroduce values factored from the integrand
-            uDataO = uDataO * obj.stepSize;
-            switch obj.stepType
-                case 'IE'
-                    uDataO = uDataO/2;
-                case 'RK4'
-                    uDataO = uDataO/6;    
-            end    
-            
-            
-        end    
-
         function [uDataO] = I1(obj, Beta,Alpha, integrandU,integrandV)
             %I1 Solves for the Xray transfrom of the given integrand along
             %the geodesics described by Beta and Alpha.
@@ -543,77 +475,7 @@ classdef RiemannSurface
             
             
         end   
-                   
-        function [uDataO, betaScattO,alphaScattO] = I1_scatt(obj, Beta,Alpha, integrandU,integrandV)
-            %I0 Solves for the Xray transfrom of the given integrand along
-            %the geodesics described by Beta and Alpha.
-            %   The I0 function is associated with obj.geoStepI0.
-            sze = size(Beta);
-            
-            dom = obj.domain;
-
-            minR2 = dom.getMinRadius;
-            minR2 = minR2*minR2;
-
-            NMAX = floor(obj.geoDur/obj.stepSize) + 1;
-
-            % initialize (x,y,th,int)
-
-            ra = dom.bdr(Beta - dom.theta);
-            x = cos(Beta) .* ra + dom.originX;
-            y = sin(Beta) .* ra + dom.originY;
-
-            th = pi + Alpha + dom.alNormal(Beta) + dom.theta;
-            uDataO = zeros(sze);
-            
-            % initialize xn,yn,thn (ideally, these become the first steps that are outside the domain)
-            xn = zeros(sze);   yn = zeros(sze);   thn = zeros(sze);   uDatan = zeros(sze);
-
-            T = 1;
-
-            insidePoints = ones(size(Beta));
-            IPidx = find(insidePoints);%;dom.isInsideR2(X,Y,minR2);
-
-            while (T ~= NMAX) && (~isempty(IPidx))
-
-                % move the inside points forward, assume all values are
-                % inside for the first step
-                [xn(IPidx), yn(IPidx), thn(IPidx), uDatan(IPidx)] = ...
-                    obj.geoStepI1(x(IPidx),y(IPidx),th(IPidx), uDataO(IPidx), integrandU,integrandV);
-      
-                % march time forward, update x,y,th,uData only if they are still inside
-                T = T+1;    
-                insidePoints(IPidx) = dom.isInsideR2(xn(IPidx),yn(IPidx),minR2);
-                IPidx = find(insidePoints); 
-                
-                x(IPidx) = xn(IPidx);   y(IPidx) = yn(IPidx);   th(IPidx) = thn(IPidx);
-                uDataO(IPidx) = uDatan(IPidx);
-            end
-            
-            % search for the points that exited (just in case some points are trapped)
-            noIPidx = find(~dom.isInsideR2(xn,yn,minR2));   
-            
-            %compute/interpolate scattering relation from the exited points
-            origX = dom.originX;
-            origY = dom.originY;
-            [betaScattO,alphaScattO, T] = dom.exitInterp(x(noIPidx)-origX, y(noIPidx)-origY,...
-                                                     xn(noIPidx)-origX,yn(noIPidx)-origY);
-            
-            %interpolate and reintroduce the last partial integral
-            uDataO(noIPidx) = (uDatan(noIPidx) - uDataO(noIPidx)).*T + uDataO(noIPidx);
-            
-            %reintroduce values factored from the integrand
-            uDataO = uDataO * obj.stepSize;
-            switch obj.stepType
-                case 'IE'
-                    uDataO = uDataO/2;
-                case 'RK4'
-                    uDataO = uDataO/6;    
-            end    
-            
-            
-        end    
-        
+                           
         function [fDataO] = I0star(obj, xray, X,Y, geosPer)
             % Xray must be a 2 parameter function defined on [0,2pi]x[-pi,pi].
             % 
@@ -690,12 +552,13 @@ classdef RiemannSurface
             
             bscatt = mod(BetaScatt, 2*pi);
             ascatt = mod(AlphaScatt+po2,pi)-po2;
-            fDataO = [func(Beta,Alpha), sign*func(bscatt, ascatt)];
+            
             betaO = [Beta, Beta];
-            alphaO = [Alpha, ascatt+pi];
+            alphaO = [Alpha, Alpha+pi];
+            fDataO = [func(Beta,Alpha), sign*func(bscatt, ascatt)];
         end      
       
-        function [fDataO] = geoHilbert(~, Beta,Alpha,func, nal2)
+        function [fDataO] = geoHilbert(~, Beta,Alpha,func, nalo2)
             % F is handled as an anonymous function
             % for each input beta, descretizes the function along alpha in order to perform FFT
             % output is interpolated samples of fft output
@@ -703,35 +566,35 @@ classdef RiemannSurface
             sze = size(Beta);
             ubt = unique(reshape(Beta,[],1))';
             
-            al = linspace(-pi/2,3*pi/2,nal2*2);
+            al = linspace(-pi/2,3*pi/2,nalo2*2);
             Alpha = mod(Alpha+pi/2,2*pi)-pi/2;
             
             fDataO = zeros(sze);
             
-            H = 2*nal2*[-1j*ones(1,nal2), 1j*ones(1,nal2)];
+            H = 2*nalo2*[-1j*ones(1,nalo2), 1j*ones(1,nalo2)];
             
             for bt = ubt
                 alind = (bt == Beta); 
                  
-                fDataO(alind) = interp1(al, ifft(H .* fft( func(mod(ones(1,nal2*2)*bt,2*pi),al), nal2*2 ) ) /(nal2*2),...
+                fDataO(alind) = interp1(al, ifft(H .* fft( func(mod(ones(1,nalo2*2)*bt,2*pi),al), nalo2*2 ) ) /(nalo2*2),...
                                          Alpha(alind), 'linear');
             end
             fDataO = real(fDataO);
-            %fDataO = func(Beta,Alpha);
+
         end   
         
         function [fDataO, betaO,alphaO] = geoAstar_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt, sign)            
             po2 = pi/2;
             
             bscatt = mod(BetaScatt, 2*pi);
-            ascatt = mod(AlphaScatt+po2,2*pi)-po2; % !!!!!TODO!!!!! figure out why mod(AlphaScatt+po2,2*pi)-po2; doesnt work
+            ascatt = mod(AlphaScatt+po2+pi,2*pi)-po2; % !!!!!----!!!!! figure out why mod(AlphaScatt+po2,2*pi)-po2; doesnt work
                                                    % edit: TOOD!!!! figure out what changed so that its no longer mod(-AlphaScatt+po2,2*pi)-po2; doesnt work
-            fDataO = func(Beta,Alpha) -sign*func(bscatt, ascatt); % !!!!!TODO!!!!! figure out why func(Beta,Alpha) +sign*func(bscatt, ascatt); doesnt work
+            fDataO = func(Beta,Alpha) + sign*func(bscatt, ascatt); 
             betaO = Beta;
             alphaO = Alpha;
         end  
         
-        function [fDataO, Beta,Alpha] = geoR_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt, nal2)
+        function [fDataO, Beta,Alpha] = geoR_precomp(~, Beta,Alpha,func, BetaScatt,AlphaScatt, nalo2)
             
             % A operator
             po2 = pi/2;
@@ -739,31 +602,63 @@ classdef RiemannSurface
             bscatt = mod(BetaScatt, 2*pi);
             ascatt = mod(AlphaScatt+po2,pi)-po2;
             
-            fData = [func(Beta,Alpha), -func(bscatt, ascatt)];
-                           
-            intF = scatteredInterpolant(reshape([Beta, Beta],[],1),...
-                                        reshape([Alpha, ascatt+pi],[],1),...
-                                        reshape(fData,[],1));
+            intF = scatteredInterpolant(reshape([Beta, Beta],                              [],1),...
+                                        reshape([Alpha, Alpha+pi],                         [],1),...
+                                        reshape([func(Beta,Alpha), -func(bscatt, ascatt)], [],1) );
+             
             
+            % Hilbert + A* operator
+            
+            ubt = unique(reshape(Beta,[],1))'; % TODO: add a threshold for very near fibres to be considered as the same fibre
+            fDataO = zeros(size(Beta));
+            al = linspace(-pi/2,3*pi/2,nalo2*2);
+            H = 2*nalo2*[-1j*ones(1,nalo2), 1j*ones(1,nalo2)];
+                        
+            for bt = ubt
+                alind = (bt == Beta); 
+                
+                HAbt = ifft(H .* fft( intF(mod(ones(1,nalo2*2)*bt,2*pi),al), nalo2*2 ) ) /(nalo2*2);
+                
+                fDataO(alind) = interp1(al, HAbt, Alpha(alind), 'linear') +...
+                                interp1(al, HAbt, Alpha(alind), 'linear'); % TODO: this is incorrect, should be ascatt + pi on associated bscatt fibres, consider interpolating for these values
+            end
+           
+            
+            fDataO = real(fDataO)/4;
+            
+        end    
+   
+        function [fDataO, Beta,Alpha] = geoR_simple(~, Beta,Alpha,func, nalo2)
+            % Covers only the case that func(Beta,Alpha+pi) = -func(Beta,Alpha)
+            % A operator
+            po2 = pi/2;
+            
+            fba = func(Beta,Alpha);
+            
+            intF = scatteredInterpolant(reshape([Beta, Beta],       [],1),...
+                                        reshape([Alpha, Alpha+pi],  [],1),...
+                                        reshape([fba, -fba],        [],1) );                    
+                                    
             % Hilbert + A* operator
             
             ubt = unique(reshape(Beta,[],1))';
             fDataO = zeros(size(Beta));
-            al = linspace(-pi/2,3*pi/2,nal2*2);
-            H = 2*nal2*[-1j*ones(1,nal2), 1j*ones(1,nal2)];
+            al = linspace(-pi/2,3*pi/2,nalo2*2);
+            H = 2*nalo2*[-1j*ones(1,nalo2), 1j*ones(1,nalo2)];
             
             for bt = ubt
                 alind = (bt == Beta); 
                 
-                HAbt = ifft(H .* fft( intF(mod(ones(1,nal2*2),2*pi)*bt,al), nal2*2 ) ) /(nal2*2);
+                HAbt = ifft(H .* fft( intF(mod(ones(1,nalo2*2)*bt,2*pi),al), nalo2*2 ) ) /(nalo2*2);
                 
-                fDataO(alind) = interp1(al, HAbt, Alpha(alind), 'linear') + ...
-                                interp1(al, HAbt, ascatt(alind) + pi, 'linear');
+                fDataO(alind) = interp1(al, HAbt, Alpha(alind), 'linear') - ... % TODO figure out why + doesnt work
+                                interp1(al, HAbt, Alpha(alind) + pi, 'linear');
             end
             
-            fDataO = real(fDataO);
+            fDataO = real(fDataO)/4;
             
         end    
+  
         
 %--------------------------------------------------------------------------
 %%                              Ploters                                    
@@ -783,7 +678,7 @@ classdef RiemannSurface
 
 
             % reshape for plotting (not totally neccessary)
-            X = X(:);   Y = Y(:);   Th = Th(:);
+            X = reshape(X,[],1);   Y = reshape(Y,[],1);   Th = reshape(Th,[],1);
 
             [xO,yO,~] = obj.geodesic(X,Y,Th);
 
@@ -1618,6 +1513,7 @@ classdef RiemannSurface
             end
         end       
         
+%--------------------------------------------------------------------------        
     end 
     
     methods (Static)

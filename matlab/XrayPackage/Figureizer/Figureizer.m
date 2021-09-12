@@ -8,7 +8,7 @@ classdef Figureizer
     
     methods (Static)
 %--------------------------------------------------------------------------
-%%                       Helper Stuff
+%%                       Helper Stuff                                      
 %--------------------------------------------------------------------------          
 
         function betaO = spaceBetas(surface)
@@ -35,13 +35,13 @@ classdef Figureizer
         end
 
 %--------------------------------------------------------------------------
-%%                   Deprojected Plotters
+%%                   Deprojected Plotters                                  
 %--------------------------------------------------------------------------     
         
         function fig = figureDeprojected(surface,func)
             arguments
                 surface (1,1) {RiemannSurface.mustBeSurface};
-                func (1,1) {mustBe2DHandle} = @(x,y) NaN(size(x));
+                func (1,1) = @(x,y) NaN(size(x));
             end
             
             sett = Figureizer.settings;
@@ -50,11 +50,12 @@ classdef Figureizer
             met = surface.metric;
             
             [px, py] = met.aabbspace(dom, sett.gridResolution);
-            [px, py] = meshgrid(px,py);
+            [px, py] = ndgrid(px,py);
             [dpx,dpy,dpz] = met.deproject(px,py);
             
             fig = figure; hold on;
-                       
+            ax = gca;   
+                      
             %plot surface
             s = surf(dpx,dpy,dpz,func(px,py));
             light(Position = [1 1 1], Style = 'infinite', Color = 'white');
@@ -68,13 +69,16 @@ classdef Figureizer
             
             
             colormap(sett.funcColormap);
-            ax = gca;   
+            
             ax.ClippingStyle = 'rectangle';
             ax.Clipping = 'off';
             axis equal;
             
             view([45,20])
-            
+            if (sett.forceMidZero)
+                cmax = max(ax.CLim);
+                ax.CLim = [-cmax, cmax];
+            end
         end
         
         function plotDomainDeprojected(surface)
@@ -105,7 +109,7 @@ classdef Figureizer
             adx = [min(ddomx(1:ceil(end/40):end),[],'all'),max(ddomx(1:ceil(end/40):end),[],'all')]; 
             ady = [min(ddomy(1:ceil(end/40):end),[],'all'),max(ddomy(1:ceil(end/40):end),[],'all')]; 
             adz = [min(ddomz(1:ceil(end/40):end),[],'all'),max(ddomz(1:ceil(end/40):end),[],'all')]; 
-            ab = max(abs([adx(2)-adx(1), ady(2)-ady(1), adz(2)-adz(1)]) ) * 0.05;
+            ab = max(abs([adx(2)-adx(1), ady(2)-ady(1), adz(2)-adz(1)]) ) * 0.03;
             
             %rescale alnormals
             mag = sqrt((dax-ddomx).^2+(day-ddomy).^2+(daz-ddomz).^2);
@@ -231,24 +235,25 @@ classdef Figureizer
         end
          
 %--------------------------------------------------------------------------
-%%                   Standard Plotters
+%%                    Standard Plotters                                    
 %--------------------------------------------------------------------------          
         
         function fig = figure(surface,func)
             arguments
                 surface (1,1) {RiemannSurface.mustBeSurface};
-                func (1,1) {mustBe2DHandle} = @(x,y) NaN(size(x));
+                func (1,1) = @(x,y) NaN(size(x));
             end
             
             sett = Figureizer.settings;
 
             fig = figure; hold on;
+            ax = gca;
             
             dom = surface.domain;
             met = surface.metric;
             
             [px,py] = dom.aabbspace(sett.gridResolution);
-            [px, py] = meshgrid(px,py);
+            [px, py] = ndgrid(px,py);
             ox = dom.originX;
             oy = dom.originY;
                        
@@ -263,7 +268,16 @@ classdef Figureizer
             
             axis equal;            
             colormap(sett.funcColormap);
-
+            
+            %set lims
+            [minB,maxB] = dom.getBoundingBox;
+            xlim([minB(1),maxB(1)] + dom.originX);
+            ylim([minB(2),maxB(2)] + dom.originY);
+            
+            if (sett.forceMidZero)
+                cmax = max(ax.CLim);
+                ax.CLim = [-cmax, cmax];
+            end
         end
         
         function plotDomain(surface)
@@ -292,7 +306,7 @@ classdef Figureizer
             %compute sizes for positioning camera and rescaling alnormal
             adx = [min(domx(1:ceil(end/40):end),[],'all'),max(domx(1:ceil(end/40):end),[],'all')]; 
             ady = [min(domy(1:ceil(end/40):end),[],'all'),max(domy(1:ceil(end/40):end),[],'all')]; 
-            ab = max(abs([adx(2)-adx(1), ady(2)-ady(1), adx(2)-ady(1)]) ) * 0.05;
+            ab = max(abs([adx(2)-adx(1), ady(2)-ady(1), adx(2)-ady(1)]) ) * 0.03;
             
             %rescale alnormals
             ax = ab*(ax-domx) + domx;
@@ -409,6 +423,44 @@ classdef Figureizer
         end
 
 %--------------------------------------------------------------------------              
+%%                    Geo-Space Plotters                                   
+%--------------------------------------------------------------------------
 
+        function fig = figureGSpace(surface, func, args)
+            
+            arguments
+                surface
+                func (1,1) = @(x,y) NaN(size(x));
+                args.betaRange (1,2) {mustBeNumeric} = [0,2*pi];
+                args.alphaRange (1,2) {mustBeNumeric} = [-pi,pi]/2;
+            end
+            
+            sett = Figureizer.settings;
+
+            fig = figure; hold on;
+            ax = gca;   
+
+            betaS  = linspace(args.betaRange(1), args.betaRange(2), sett.gridResolution);
+            alphaS = linspace(args.alphaRange(1),args.alphaRange(2),sett.gridResolution);
+            
+            [betaG,alphaG] = ndgrid(betaS,alphaS);
+            
+            s = pcolor(betaG,alphaG,func(betaG,alphaG));
+            s.EdgeColor = 'none';
+            s.FaceColor = 'interp';
+            colormap(sett.funcColormap);
+            
+            xlim(args.betaRange);
+            ylim(args.alphaRange);
+            
+            if (sett.forceMidZero)
+                cmax = max(ax.CLim);
+                ax.CLim = [-cmax, cmax];
+            end
+            
+        end
+
+
+%--------------------------------------------------------------------------
     end
 end
